@@ -1,0 +1,5 @@
+{
+  "name": "ASOBO 予約・顧客管理システム",
+  "description": "ASOBOが運営する、イベント予約および顧客管理のための統合システムです。",
+  "requestFramePermissions": []
+}
