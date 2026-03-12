@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Program as AppProgram, User as AppUser } from '../types';
+import { Program as AppProgram, User as AppUser, Reservation } from '../types';
 import { api as appApi } from '../services/api';
 import { ProgramList } from './ProgramList';
 import { ProgramDetail } from './ProgramDetail';
@@ -10,11 +10,12 @@ import { ProgramForm } from './ProgramForm';
 interface ProgramsManagerProps {
   user: AppUser | null;
   programs: AppProgram[];
+  reservations: Reservation[];
   onRefresh: () => void;
   onUnauthorized?: () => void;
 }
 
-export function ProgramsManager({ user, programs, onRefresh, onUnauthorized }: ProgramsManagerProps) {
+export function ProgramsManager({ user, programs, reservations, onRefresh, onUnauthorized }: ProgramsManagerProps) {
   const [viewMode, setViewMode] = useState<'list' | 'detail' | 'form'>('list');
   const [selectedProgram, setSelectedProgram] = useState<AppProgram | null>(null);
   const [editingProgramId, setEditingProgramId] = useState<string | null>(null);
@@ -31,8 +32,6 @@ export function ProgramsManager({ user, programs, onRefresh, onUnauthorized }: P
   };
 
   const handleSubmit = async (formData: any) => {
-    if (!confirm(editingProgramId ? '変更を保存しますか？' : '新しいプログラムを作成しますか？')) return;
-    
     try {
       if (editingProgramId) {
         await appApi.programs.update(editingProgramId, formData);
@@ -41,28 +40,25 @@ export function ProgramsManager({ user, programs, onRefresh, onUnauthorized }: P
       }
       
       setViewMode('list');
-      setSelectedProgram(null);
       onRefresh();
     } catch (error: any) {
       if (error.error === 'Unauthorized' && onUnauthorized) {
         onUnauthorized();
       } else {
-        alert(`プログラムの保存に失敗しました: ${error.error || 'サーバーエラー'}`);
+        console.error(`プログラムの保存に失敗しました: ${error.error || 'サーバーエラー'}`);
       }
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('このプログラムを削除（非表示）にしますか？')) return;
     try {
       await appApi.programs.delete(id);
       if (selectedProgram?.id === id) {
-        setSelectedProgram(null);
         setViewMode('list');
       }
       onRefresh();
     } catch (error) {
-      alert('削除に失敗しました');
+      console.error('削除に失敗しました', error);
     }
   };
 
@@ -96,8 +92,8 @@ export function ProgramsManager({ user, programs, onRefresh, onUnauthorized }: P
           >
             <ProgramDetail 
               program={selectedProgram}
+              reservations={reservations}
               onClose={() => {
-                setSelectedProgram(null);
                 setViewMode('list');
               }}
               onEdit={handleOpenForm}

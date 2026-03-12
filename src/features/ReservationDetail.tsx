@@ -11,7 +11,7 @@ import {
   Phone,
   Tag,
   FileText,
-  X,
+  ArrowLeft,
   Sparkles,
   UserCheck,
   UserX
@@ -54,18 +54,20 @@ export function ReservationDetail({
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="bg-white rounded-[32px] shadow-sm border border-slate-200 overflow-hidden flex flex-col"
+      className="flex flex-col space-y-6"
     >
       {/* Header */}
-      <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-6">
           <button 
             onClick={onClose}
-            className="p-3 bg-white border border-slate-200 text-slate-400 rounded-2xl hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm"
+            className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-xl transition-all"
+            title="一覧に戻る"
           >
-            <X size={20} />
+            <ArrowLeft size={24} />
           </button>
-          <div className={`p-4 rounded-2xl ${statusConfig.color} shadow-lg shadow-slate-100`}>
+          <div className="h-8 w-px bg-slate-200" />
+          <div className={`p-3 rounded-xl ${statusConfig.color} shadow-sm`}>
             <StatusIcon size={24} />
           </div>
           <div>
@@ -95,7 +97,7 @@ export function ReservationDetail({
       </div>
 
       {/* Content */}
-      <div className="p-8 space-y-8">
+      <div className="space-y-8">
         {/* Program & Schedule */}
         <section className="space-y-4">
           <div className="flex items-center gap-2 text-indigo-600">

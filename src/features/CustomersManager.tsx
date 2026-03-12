@@ -8,6 +8,8 @@ import { useCustomerFilters } from '../hooks/useCustomerFilters';
 import { CustomerList } from './CustomerList';
 import { CustomerDetail } from './CustomerDetail';
 import { CustomerEdit } from './CustomerEdit';
+import { SurveyImportModal } from './SurveyImportModal';
+import { Upload } from 'lucide-react';
 
 interface CustomersManagerProps {
   customers: Parent[];
@@ -26,6 +28,7 @@ export function CustomersManager({ customers, onRefresh }: CustomersManagerProps
   const [selectedCustomer, setSelectedCustomer] = useState<Parent | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const handleSelectCustomer = async (customer: Parent) => {
     setSelectedCustomer(customer);
@@ -84,6 +87,7 @@ export function CustomersManager({ customers, onRefresh }: CustomersManagerProps
               onFilterChange={setFilterType}
               onSelect={handleSelectCustomer}
               onExport={handleExport}
+              onImportSurveys={() => setIsImportModalOpen(true)}
             />
           </motion.div>
         ) : isEditing ? (
@@ -95,16 +99,8 @@ export function CustomersManager({ customers, onRefresh }: CustomersManagerProps
           >
             <CustomerEdit
               customer={selectedCustomer}
-              onClose={() => {
-                if (window.confirm('編集内容が破棄されます。よろしいですか？')) {
-                  setIsEditing(false);
-                  setSelectedCustomer(null);
-                }
-              }}
               onBack={() => {
-                if (window.confirm('編集内容が破棄されます。よろしいですか？')) {
-                  setIsEditing(false);
-                }
+                setIsEditing(false);
               }}
               onSubmit={handleUpdate}
             />
@@ -125,6 +121,14 @@ export function CustomersManager({ customers, onRefresh }: CustomersManagerProps
           </motion.div>
         )}
       </AnimatePresence>
+
+      <SurveyImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={() => {
+          onRefresh();
+        }}
+      />
     </div>
   );
 }

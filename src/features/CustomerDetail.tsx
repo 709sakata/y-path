@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { X, Mail, Phone, ShieldCheck, Baby, ChevronRight, History, CheckCircle2, XCircle, Clock3, CreditCard, Users, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, ShieldCheck, Baby, ChevronRight, History, CheckCircle2, XCircle, Clock3, CreditCard, Users, ExternalLink, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { Parent } from '../types';
 
@@ -23,17 +23,19 @@ export function CustomerDetail({ customer, loading, onClose, onEdit }: CustomerD
   };
 
   return (
-    <div className="bg-white rounded-[32px] shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+    <div className="flex flex-col space-y-6">
       {/* Header */}
-      <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-6">
           <button 
             onClick={onClose}
-            className="p-3 bg-white border border-slate-200 text-slate-400 rounded-2xl hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm"
+            className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-xl transition-all"
+            title="一覧に戻る"
           >
-            <X size={20} />
+            <ArrowLeft size={24} />
           </button>
-          <div className="w-16 h-16 bg-indigo-600 text-white rounded-2xl flex items-center justify-center text-2xl font-bold shadow-lg shadow-indigo-100">
+          <div className="h-8 w-px bg-slate-200" />
+          <div className="w-12 h-12 bg-indigo-600 text-white rounded-xl flex items-center justify-center text-xl font-bold shadow-sm">
             {customer.name.charAt(0)}
           </div>
           <div>
@@ -62,7 +64,7 @@ export function CustomerDetail({ customer, loading, onClose, onEdit }: CustomerD
       </div>
 
       {/* Content */}
-      <div className="p-8">
+      <div>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 space-y-4">
             <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
@@ -175,6 +177,50 @@ export function CustomerDetail({ customer, loading, onClose, onEdit }: CustomerD
                     <p className="text-slate-400 text-sm">予約履歴はありません</p>
                   </div>
                 )}
+              </div>
+
+              {/* Surveys Section */}
+              <div className="pt-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2 text-slate-800">
+                    <FileText size={18} className="text-indigo-600" />
+                    <h4 className="font-bold text-sm uppercase tracking-wider">アンケート回答</h4>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
+                    全 {customer.surveys?.length || 0} 件
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  {customer.surveys && customer.surveys.length > 0 ? (
+                    customer.surveys.map((survey: any) => (
+                      <div key={survey.id} className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                        <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
+                          <h5 className="font-bold text-slate-800">{survey.title}</h5>
+                          <span className="text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded-lg">
+                            {format(new Date(survey.submitted_at), 'yyyy/MM/dd HH:mm')}
+                          </span>
+                        </div>
+                        <div className="space-y-4">
+                          {Object.entries(survey.answers).map(([question, answer]) => {
+                            // Skip timestamp or matching columns if they are just metadata, but for now show all
+                            if (question.toLowerCase().includes('timestamp') || question.includes('タイムスタンプ')) return null;
+                            return (
+                              <div key={question} className="bg-slate-50 p-3 rounded-xl">
+                                <div className="text-xs font-bold text-slate-500 mb-1">{question}</div>
+                                <div className="text-sm text-slate-800 whitespace-pre-wrap">{String(answer)}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-12 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200 text-center">
+                      <p className="text-slate-400 text-sm">アンケート回答はありません</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

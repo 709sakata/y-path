@@ -52,6 +52,8 @@ export function DashboardMarketing({ stats }: DashboardMarketingProps) {
                   tick={{fill: '#A1A1AA', fontSize: 10, fontWeight: 700, fontFamily: 'JetBrains Mono'}} 
                 />
                 <Tooltip 
+                  formatter={(value: number) => [`${value}%`, '入会率']}
+                  labelFormatter={(label) => `${label}回参加`}
                   contentStyle={{
                     borderRadius: '20px', 
                     border: '1px solid #F4F4F5', 
@@ -97,6 +99,8 @@ export function DashboardMarketing({ stats }: DashboardMarketingProps) {
                   tick={{fill: '#A1A1AA', fontSize: 10, fontWeight: 700, fontFamily: 'JetBrains Mono'}} 
                 />
                 <Tooltip 
+                  formatter={(value: number) => [`¥${value.toLocaleString()}`, '売上']}
+                  labelFormatter={(label) => `${label}`}
                   contentStyle={{
                     borderRadius: '20px', 
                     border: '1px solid #F4F4F5', 

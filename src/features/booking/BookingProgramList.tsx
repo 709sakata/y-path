@@ -84,10 +84,10 @@ export function BookingProgramList({ programs, onSelect }: BookingProgramListPro
             key={program.id}
             whileHover={{ y: -8 }}
             whileTap={{ scale: 0.98 }}
-            disabled={program.recruiting_status === 'closed'}
+            disabled={program.status === 'completed'}
             onClick={() => onSelect(program)}
             className={`bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm text-left transition-all group relative overflow-hidden ${
-              program.recruiting_status === 'closed' ? 'opacity-60 grayscale-[0.5] cursor-not-allowed' : 'hover:border-brand-500 hover:shadow-2xl hover:shadow-brand-500/10'
+              program.status === 'completed' ? 'opacity-60 grayscale-[0.5] cursor-not-allowed' : 'hover:border-brand-500 hover:shadow-2xl hover:shadow-brand-500/10'
             }`}
           >
             <div className="flex items-center justify-between mb-6">
@@ -97,11 +97,11 @@ export function BookingProgramList({ programs, onSelect }: BookingProgramListPro
                 }`}>
                   {program.category === 'regular' ? '通常' : '特別'}
                 </span>
-                {program.recruiting_status === 'closed' && (
+                {program.status === 'completed' && (
                   <span className="text-[10px] font-bold px-3 py-1 bg-zinc-100 text-zinc-500 rounded-full uppercase tracking-widest">受付終了</span>
                 )}
               </div>
-              {program.recruiting_status === 'open' && (
+              {program.status !== 'completed' && (
                 program.schedules?.every(s => (s.current_participants || 0) >= s.capacity) ? (
                   <span className="text-[10px] font-bold px-3 py-1 bg-red-50 text-red-600 rounded-full uppercase tracking-widest">満員</span>
                 ) : program.schedules?.some(s => (s.current_participants || 0) >= s.capacity * 0.8) ? (

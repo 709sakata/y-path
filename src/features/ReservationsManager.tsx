@@ -37,7 +37,7 @@ export function ReservationsManager({ reservations, onRefresh, onUnauthorized }:
       if (error.error === 'Unauthorized' && onUnauthorized) {
         onUnauthorized();
       } else {
-        alert('ステータスの更新に失敗しました');
+        console.error('ステータスの更新に失敗しました');
       }
     }
   };
@@ -45,10 +45,10 @@ export function ReservationsManager({ reservations, onRefresh, onUnauthorized }:
   const handleUpdateAttendance = async (attendanceId: string, status: string) => {
     try {
       // Simulate API call
-      alert(`出席状況を「${status === 'attended' ? '出席' : '欠席'}」に更新しました（デモ）`);
+      console.log(`出席状況を「${status === 'attended' ? '出席' : '欠席'}」に更新しました（デモ）`);
       onRefresh();
     } catch (error) {
-      alert('出席状況の更新に失敗しました');
+      console.error('出席状況の更新に失敗しました');
     }
   };
 

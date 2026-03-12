@@ -100,7 +100,15 @@ router.get("/:id", async (req, res) => {
       time: r.program_schedules?.start_time
     }));
 
-    res.json({ ...parent, history: mappedReservations });
+    const { data: surveys, error: surveysError } = await supabase
+      .from('customer_surveys')
+      .select('*')
+      .eq('parent_id', targetParentId)
+      .order('submitted_at', { ascending: false });
+
+    if (surveysError) throw surveysError;
+
+    res.json({ ...parent, history: mappedReservations, surveys });
   } catch (e: any) {
     console.error(e);
     res.status(500).json({ error: e.message });
@@ -120,8 +128,7 @@ router.put("/:id", isAdmin, async (req, res) => {
         email,
         phone,
         membership_type,
-        membership_status,
-        updated_at: new Date().toISOString()
+        membership_status
       })
       .eq('id', id);
 

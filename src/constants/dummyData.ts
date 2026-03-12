@@ -26,7 +26,6 @@ export const DUMMY_PROGRAMS: Program[] = [
     base_price: 3500,
     capacity: 15,
     status: 'active',
-    recruiting_status: 'open',
     schedules: [
       {
         id: 'ds-1',
@@ -58,7 +57,6 @@ export const DUMMY_PROGRAMS: Program[] = [
     base_price: 5000,
     capacity: 20,
     status: 'active',
-    recruiting_status: 'open',
     schedules: [
       {
         id: 'ds-3',

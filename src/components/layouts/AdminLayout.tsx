@@ -14,7 +14,8 @@ import {
   Sparkles,
   Globe,
   TrendingUp,
-  Building2
+  Building2,
+  FileText
 } from 'lucide-react';
 import { SidebarItem } from '../UI';
 import { User } from '../../types';
@@ -82,8 +83,12 @@ export function AdminLayout({
             active={activeTab === 'programs'} onClick={() => onTabChange('programs')}
           />
           <SidebarItem 
-            icon={Users} label="顧客管理 (CRM)" 
+            icon={Users} label="顧客管理" 
             active={activeTab === 'crm'} onClick={() => onTabChange('crm')} 
+          />
+          <SidebarItem 
+            icon={FileText} label="アンケート管理" 
+            active={activeTab === 'surveys'} onClick={() => onTabChange('surveys')} 
           />
 
           <div className="px-4 pt-10 mb-4">

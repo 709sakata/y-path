@@ -171,7 +171,7 @@ export function LTVProjection({}: LTVProjectionProps) {
                   />
                   <Tooltip 
                     contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
-                    formatter={(val: number) => [`¥${val.toLocaleString()}`, '']}
+                    formatter={(val: number, name: string) => [`¥${val.toLocaleString()}`, name]}
                   />
                   <Legend verticalAlign="top" align="right" iconType="circle" />
                   <Area 

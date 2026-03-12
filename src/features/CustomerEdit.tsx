@@ -5,12 +5,11 @@ import { Parent } from '../types';
 
 interface CustomerEditProps {
   customer: Parent;
-  onClose: () => void;
   onBack: () => void;
   onSubmit: (data: any) => Promise<void>;
 }
 
-export function CustomerEdit({ customer, onClose, onBack, onSubmit }: CustomerEditProps) {
+export function CustomerEdit({ customer, onBack, onSubmit }: CustomerEditProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [editForm, setEditForm] = useState({
@@ -24,7 +23,6 @@ export function CustomerEdit({ customer, onClose, onBack, onSubmit }: CustomerEd
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!window.confirm('顧客情報を更新します。よろしいですか？')) return;
     
     setIsSaving(true);
     setEditError('');
@@ -51,34 +49,26 @@ export function CustomerEdit({ customer, onClose, onBack, onSubmit }: CustomerEd
   };
 
   return (
-    <div className="bg-white rounded-[32px] shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-      <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-indigo-600 text-white">
+    <div className="flex flex-col space-y-6">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-6">
           <button 
             type="button"
             onClick={onBack}
-            className="p-3 bg-white/10 border border-white/20 text-white rounded-2xl hover:bg-white/20 transition-all shadow-sm flex items-center gap-2"
+            className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-xl transition-all"
+            title="詳細に戻る"
           >
-            <ArrowLeft size={20} />
-            <span className="text-sm font-bold">詳細に戻る</span>
+            <ArrowLeft size={24} />
           </button>
-          <div className="h-8 w-px bg-white/20" />
+          <div className="h-8 w-px bg-slate-200" />
           <div>
-            <h2 className="text-2xl font-bold">顧客情報の編集</h2>
-            <p className="opacity-80 text-sm mt-1">{customer.name} 様の情報を修正しています</p>
+            <h2 className="text-2xl font-bold text-slate-800">顧客情報の編集</h2>
+            <p className="text-slate-400 text-sm mt-1">{customer.name} 様の情報を修正しています</p>
           </div>
         </div>
-        <button 
-          type="button"
-          onClick={onClose}
-          className="p-3 bg-white/10 border border-white/20 text-white rounded-2xl hover:bg-white/20 transition-all shadow-sm"
-          title="一覧に戻る"
-        >
-          <X size={20} />
-        </button>
       </div>
 
-      <form onSubmit={handleUpdate} className="p-8 space-y-8">
+      <form onSubmit={handleUpdate} className="space-y-8">
         {editError && (
           <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl flex items-center gap-2">
             <AlertCircle size={18} />

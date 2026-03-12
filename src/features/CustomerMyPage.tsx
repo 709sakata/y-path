@@ -45,7 +45,6 @@ export function CustomerMyPage({
   };
 
   const handleCancel = async (id: string) => {
-    if (!confirm('本当にこの予約をキャンセルしますか？')) return;
     try {
       const res = await fetch(`/api/reservations/${id}/cancel`, {
         method: 'POST',
@@ -55,10 +54,10 @@ export function CustomerMyPage({
         fetchHistory();
       } else {
         const data = await res.json();
-        alert(data.error || 'キャンセルに失敗しました');
+        console.error(data.error || 'キャンセルに失敗しました');
       }
     } catch (error) {
-      alert('通信エラーが発生しました');
+      console.error('通信エラーが発生しました', error);
     }
   };
 

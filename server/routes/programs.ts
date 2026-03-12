@@ -75,7 +75,7 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", isAdmin, async (req, res) => {
-  const { title, description, base_price, capacity, category, schedules, recruiting_status, organization_id } = req.body;
+  const { title, description, base_price, capacity, category, schedules, status, organization_id } = req.body;
   try {
     // 1. Create program
     const { data: programData, error: programError } = await supabase
@@ -87,7 +87,7 @@ router.post("/", isAdmin, async (req, res) => {
           base_price: base_price || 0, 
           capacity: capacity || 20, 
           category: category || 'irregular',
-          recruiting_status: recruiting_status || 'open',
+          status: status || 'active',
           organization_id: organization_id || null
         }
       ])
@@ -117,7 +117,7 @@ router.post("/", isAdmin, async (req, res) => {
 });
 
 router.put("/:id", isAdmin, async (req, res) => {
-  const { title, description, base_price, capacity, category, schedules, recruiting_status, organization_id } = req.body;
+  const { title, description, base_price, capacity, category, schedules, status, organization_id } = req.body;
   const programId = req.params.id;
 
   try {
@@ -130,7 +130,7 @@ router.put("/:id", isAdmin, async (req, res) => {
         base_price: base_price || 0, 
         capacity: capacity || 20, 
         category: category || 'irregular',
-        recruiting_status: recruiting_status || 'open',
+        status: status || 'active',
         organization_id: organization_id || null
       })
       .eq('id', programId);

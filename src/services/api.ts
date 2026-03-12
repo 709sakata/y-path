@@ -75,5 +75,14 @@ export const api = {
   },
   organizations: {
     list: (): Promise<Organization[]> => fetchWithAuth('/api/organizations'),
+  },
+  surveys: {
+    import: (data: any) => fetchWithAuth('/api/surveys/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }),
+    getByParent: (parentId: string) => fetchWithAuth(`/api/surveys/parent/${parentId}`),
+    getAll: () => fetchWithAuth('/api/surveys'),
   }
 };

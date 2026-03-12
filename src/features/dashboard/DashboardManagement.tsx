@@ -96,6 +96,7 @@ export function DashboardManagement({ stats, onViewProjection }: DashboardManage
                   tick={{fill: '#A1A1AA', fontSize: 10, fontWeight: 700, fontFamily: 'JetBrains Mono'}} 
                 />
                 <Tooltip 
+                  formatter={(value: number) => [`¥${value.toLocaleString()}`, 'LTV']}
                   cursor={{fill: '#FAFAFA'}}
                   contentStyle={{
                     borderRadius: '20px', 

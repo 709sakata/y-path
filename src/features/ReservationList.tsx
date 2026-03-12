@@ -74,7 +74,7 @@ export function ReservationList({
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
           <h3 className="font-bold text-slate-800 text-2xl">予約管理</h3>
-          <p className="text-slate-500 text-sm">予約の確認、確定、キャンセルを一括管理できます。</p>
+          <p className="text-slate-500 text-sm mt-1">予約の確認、確定、キャンセルを一括管理できます。</p>
         </div>
         
         <div className="flex flex-col gap-2 min-w-[280px]">
@@ -142,7 +142,7 @@ export function ReservationList({
           <div className="flex items-center gap-2">
             <button 
               onClick={onExport}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 hover:-translate-y-0.5 transition-all shadow-sm"
             >
               <Download size={16} />
               CSV出力
@@ -255,9 +255,9 @@ export function ReservationList({
                     className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
                     onClick={() => onSelect(res)}
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col gap-1">
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded w-fit ${
+                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full w-fit ${
                           res.membership_type === 'member' ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-500'
                         }`}>
                           {res.membership_type === 'member' ? '会員' : '一般'}
@@ -267,35 +267,35 @@ export function ReservationList({
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium text-indigo-600 truncate max-w-[200px] block">
+                        <span className="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors truncate max-w-[200px] block">
                           {res.program_title}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
-                          <Calendar size={10} /> {res.date} <Clock size={10} className="ml-1" /> {res.time}
+                        <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1 mt-1">
+                          <Calendar size={12} /> {res.date} <Clock size={12} className="ml-1" /> {res.time}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-1">
                         {res.attendance?.map((a, i) => (
-                          <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1 ${
-                            a.is_parent ? 'bg-indigo-50 text-indigo-600 font-bold' : 'bg-slate-50 text-slate-500'
+                          <span key={i} className={`text-[10px] px-2 py-1 rounded-full flex items-center gap-1 font-bold ${
+                            a.is_parent ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-50 text-slate-600'
                           }`}>
                             {a.is_parent ? '保護者' : a.children?.name || 'お子様'}
                           </span>
                         ))}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-bold text-slate-800">¥{res.total_price?.toLocaleString()}</span>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${status.color}`}>
-                        <StatusIcon size={12} />
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold ${status.color}`}>
+                        <StatusIcon size={14} />
                         {status.label}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
                       <div className="flex justify-end items-center gap-2">
                         {res.status === 'pending' && (
                           <button 
@@ -303,13 +303,13 @@ export function ReservationList({
                               e.stopPropagation();
                               onUpdateStatus(res.id, 'confirmed');
                             }}
-                            className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                            className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
                             title="確定する"
                           >
-                            <CheckCircle2 size={14} />
+                            <CheckCircle2 size={16} />
                           </button>
                         )}
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-all">
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-300 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-all">
                           <ChevronRight size={18} />
                         </div>
                       </div>

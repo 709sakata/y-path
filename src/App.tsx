@@ -57,13 +57,14 @@ import { Dashboard } from './features/Dashboard';
 import { MarketIntelligence } from './features/MarketIntelligence';
 import { LTVProjection } from './features/LTVProjection';
 import { ProgramStrategyAgent } from './features/ProgramStrategyAgent';
+import { SurveysManager } from './features/SurveysManager';
 
 const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444'];
 
 export default function App() {
   const [viewMode, setViewMode] = useState<'admin' | 'public' | 'mypage'>('public');
   const { user, parentProfile, loading, login, logout, isAdmin, refreshAuth } = useAuth();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'crm' | 'reservations' | 'programs' | 'market' | 'projection' | 'strategy'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'crm' | 'reservations' | 'programs' | 'market' | 'projection' | 'strategy' | 'surveys'>('dashboard');
   
   const { stats, customers, reservations, programs, refreshData } = useAdminData(isAdmin, user);
 
@@ -177,7 +178,7 @@ export default function App() {
             exit={{ opacity: 0, x: -20 }}
             className="space-y-6"
           >
-            <ProgramsManager user={user} programs={programs} onRefresh={refreshData} onUnauthorized={() => login({ id: '', role: 'customer' }, null)} />
+            <ProgramsManager user={user} programs={programs} reservations={reservations} onRefresh={refreshData} onUnauthorized={() => login({ id: '', role: 'customer' }, null)} />
           </motion.div>
         )}
 
@@ -190,6 +191,18 @@ export default function App() {
             className="space-y-6"
           >
             <CustomersManager customers={customers} onRefresh={refreshData} />
+          </motion.div>
+        )}
+
+        {activeTab === 'surveys' && (
+          <motion.div 
+            key="surveys"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            <SurveysManager />
           </motion.div>
         )}
 

@@ -13,6 +13,15 @@ export interface User {
   organization_id?: string;
 }
 
+export interface Survey {
+  id: string;
+  parent_id?: string;
+  title: string;
+  submitted_at: string;
+  answers: Record<string, string>;
+  created_at: string;
+}
+
 export interface Parent {
   id: string;
   name: string;
@@ -27,6 +36,7 @@ export interface Parent {
   created_at?: string;
   children?: Child[];
   history?: Reservation[];
+  surveys?: Survey[];
 }
 
 export interface Child {
@@ -48,7 +58,6 @@ export interface Program {
   base_price: number;
   capacity: number;
   status: 'active' | 'cancelled' | 'completed';
-  recruiting_status: 'open' | 'closed';
   schedules?: ProgramSchedule[];
 }
 
