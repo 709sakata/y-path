@@ -1,21 +1,28 @@
 import express from "express";
 import { supabase } from "../supabase";
 import { isAdmin } from "../middleware/auth";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, subDays } from "date-fns";
 
 const router = express.Router();
 
 router.get("/", isAdmin, async (req, res) => {
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
-  const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+  const period = req.query.period as string || 'all';
+  const todayDate = new Date();
+  const today = format(todayDate, 'yyyy-MM-dd');
+  
+  let startDate = '';
+  if (period !== 'all') {
+    const days = parseInt(period, 10);
+    const start = subDays(todayDate, days);
+    startDate = format(start, 'yyyy-MM-dd');
+  }
 
   try {
     // 1. Today's reservations (count children attending today)
     const { data: todaySchedules } = await supabase
       .from('program_schedules')
       .select('id')
-      .eq('date', today);
+      .eq('start_date', today);
     
     const scheduleIds = todaySchedules?.map(s => s.id) || [];
     
@@ -27,45 +34,48 @@ router.get("/", isAdmin, async (req, res) => {
           .neq('status', 'cancelled')
       : { count: 0 };
 
-    // 2. Monthly Revenue
-    const { data: monthSchedules } = await supabase
-      .from('program_schedules')
-      .select('id')
-      .gte('date', monthStart)
-      .lte('date', monthEnd);
+    // 2. Period Revenue
+    let scheduleQuery = supabase.from('program_schedules').select('id');
+    if (startDate) {
+      scheduleQuery = scheduleQuery.gte('start_date', startDate);
+    }
+    const { data: periodSchedules } = await scheduleQuery;
     
-    const monthScheduleIds = monthSchedules?.map(s => s.id) || [];
+    const periodScheduleIds = periodSchedules?.map(s => s.id) || [];
     
-    const { data: revenueData } = monthScheduleIds.length > 0
+    const { data: revenueData } = periodScheduleIds.length > 0
       ? await supabase
           .from('reservations')
           .select('total_price')
-          .in('program_schedule_id', monthScheduleIds)
+          .in('program_schedule_id', periodScheduleIds)
           .eq('status', 'confirmed')
       : { data: [] };
     
     const totalRevenue = (revenueData as any[])?.reduce((acc: number, curr: any) => acc + (curr.total_price || 0), 0) || 0;
 
+    // Active customers
     const { count: activeCustCount } = await supabase
-      .from('parents')
+      .from('parent_organizations')
       .select('*', { count: 'exact', head: true })
       .eq('membership_status', 'active');
 
-    const { count: pendingCount } = await supabase
-      .from('reservations')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'pending');
+    // Pending requests
+    let pendingQuery = supabase.from('reservations').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+    if (startDate) {
+      pendingQuery = pendingQuery.gte('created_at', startDate);
+    }
+    const { count: pendingCount } = await pendingQuery;
 
     // 3. LTV & Funnel Metrics (Strict Business Logic)
     const { data: allParents } = await supabase
       .from('parents')
-      .select('id, name, membership_type, joined_at, membership_status');
+      .select('id, name, parent_organizations(membership_type, joined_at, membership_status)');
     
-    const { data: allConfirmedReservations } = await supabase
-      .from('reservations')
-      .select('parent_id, total_price, created_at')
-      .eq('status', 'confirmed')
-      .order('created_at', { ascending: true });
+    let resQuery = supabase.from('reservations').select('parent_id, total_price, created_at').eq('status', 'confirmed').order('created_at', { ascending: true });
+    if (startDate) {
+      resQuery = resQuery.gte('created_at', startDate);
+    }
+    const { data: allConfirmedReservations } = await resQuery;
 
     const now = new Date();
     const CPA_ESTIMATE = 5000; // 顧客獲得単価（仮定）
@@ -74,11 +84,12 @@ router.get("/", isAdmin, async (req, res) => {
     // 顧客ごとの集計
     const customerMetrics: Record<string, any> = {};
     (allParents as any[])?.forEach(p => {
+      const org = p.parent_organizations?.[0] || {};
       customerMetrics[p.id] = {
         parentId: p.id,
         parentName: p.name,
-        membershipType: p.membership_type,
-        joinedAt: p.joined_at ? new Date(p.joined_at) : null,
+        membershipType: org.membership_type || 'general',
+        joinedAt: org.joined_at ? new Date(org.joined_at) : null,
         reservations: [],
         totalRevenue: 0,
         spotRevenue: 0,

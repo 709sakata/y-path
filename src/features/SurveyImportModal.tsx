@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { X, Upload, FileText, AlertCircle, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Upload, FileText, AlertCircle, CheckCircle, Building2, Sparkles } from 'lucide-react';
 import Papa from 'papaparse';
 import { api as appApi } from '../services/api';
+import { Organization, Program } from '../types';
 
 interface SurveyImportModalProps {
   isOpen: boolean;
@@ -16,9 +17,34 @@ export function SurveyImportModal({ isOpen, onClose, onSuccess }: SurveyImportMo
   const [columns, setColumns] = useState<string[]>([]);
   const [matchColumn, setMatchColumn] = useState('');
   const [matchType, setMatchType] = useState<'email' | 'phone'>('email');
+  
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [selectedOrgId, setSelectedOrgId] = useState('');
+  const [selectedProgramId, setSelectedProgramId] = useState('');
+
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<{ matched: number; unlinked: number; total: number } | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchOptions();
+    }
+  }, [isOpen]);
+
+  const fetchOptions = async () => {
+    try {
+      const [orgsData, programsData] = await Promise.all([
+        appApi.organizations.list(),
+        appApi.programs.list()
+      ]);
+      setOrganizations(orgsData);
+      setPrograms(programsData);
+    } catch (err) {
+      console.error('Failed to fetch options:', err);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -82,7 +108,9 @@ export function SurveyImportModal({ isOpen, onClose, onSuccess }: SurveyImportMo
         title,
         surveys: parsedData,
         matchColumn,
-        matchType
+        matchType,
+        organization_id: selectedOrgId || undefined,
+        program_id: selectedProgramId || undefined
       });
 
       setResult({
@@ -201,38 +229,84 @@ export function SurveyImportModal({ isOpen, onClose, onSuccess }: SurveyImportMo
               </div>
 
               {columns.length > 0 && (
-                <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
-                  <h4 className="font-bold text-slate-700 flex items-center gap-2">
-                    顧客との紐付け設定
-                  </h4>
-                  <p className="text-sm text-slate-600">
-                    CSVのどの列を使って、システム内の顧客情報と紐付けるかを選択してください。
-                  </p>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 mb-1">CSVの列</label>
-                      <select
-                        value={matchColumn}
-                        onChange={(e) => setMatchColumn(e.target.value)}
-                        className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none text-sm"
-                      >
-                        <option value="">選択してください</option>
-                        {columns.map(col => (
-                          <option key={col} value={col}>{col}</option>
-                        ))}
-                      </select>
+                <div className="space-y-6">
+                  <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
+                    <h4 className="font-bold text-slate-700 flex items-center gap-2">
+                      顧客との紐付け設定
+                    </h4>
+                    <p className="text-sm text-slate-600">
+                      CSVのどの列を使って、システム内の顧客情報と紐付けるかを選択してください。
+                    </p>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">CSVの列</label>
+                        <select
+                          value={matchColumn}
+                          onChange={(e) => setMatchColumn(e.target.value)}
+                          className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none text-sm"
+                        >
+                          <option value="">選択してください</option>
+                          {columns.map(col => (
+                            <option key={col} value={col}>{col}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">紐付け先（顧客情報）</label>
+                        <select
+                          value={matchType}
+                          onChange={(e) => setMatchType(e.target.value as 'email' | 'phone')}
+                          className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none text-sm"
+                        >
+                          <option value="email">メールアドレス</option>
+                          <option value="phone">電話番号</option>
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 mb-1">紐付け先（顧客情報）</label>
-                      <select
-                        value={matchType}
-                        onChange={(e) => setMatchType(e.target.value as 'email' | 'phone')}
-                        className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none text-sm"
-                      >
-                        <option value="email">メールアドレス</option>
-                        <option value="phone">電話番号</option>
-                      </select>
+                  </div>
+
+                  <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
+                    <h4 className="font-bold text-slate-700 flex items-center gap-2">
+                      団体・プログラムとの紐付け設定（任意）
+                    </h4>
+                    <p className="text-sm text-slate-600">
+                      このアンケートが特定の団体やプログラムに関連している場合は、選択してください。
+                    </p>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1 flex items-center gap-1">
+                          <Building2 size={12} /> 団体
+                        </label>
+                        <select
+                          value={selectedOrgId}
+                          onChange={(e) => setSelectedOrgId(e.target.value)}
+                          className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none text-sm"
+                        >
+                          <option value="">指定しない</option>
+                          {organizations.map(org => (
+                            <option key={org.id} value={org.id}>{org.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1 flex items-center gap-1">
+                          <Sparkles size={12} /> プログラム
+                        </label>
+                        <select
+                          value={selectedProgramId}
+                          onChange={(e) => setSelectedProgramId(e.target.value)}
+                          className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none text-sm"
+                        >
+                          <option value="">指定しない</option>
+                          {programs
+                            .filter(p => !selectedOrgId || p.organization_id === selectedOrgId)
+                            .map(prog => (
+                            <option key={prog.id} value={prog.id}>{prog.title}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { Reservation } from '../types';
+import { RESERVATION_STATUS } from '../constants';
 import { parseISO, isBefore, isAfter, format } from 'date-fns';
 
 export function useReservationFilters(reservations: Reservation[]) {
-  const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'confirmed' | 'cancelled'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | typeof RESERVATION_STATUS[keyof typeof RESERVATION_STATUS]>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'created_at' | 'date' | 'price'>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');

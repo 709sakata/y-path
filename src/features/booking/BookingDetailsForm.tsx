@@ -2,6 +2,7 @@ import * as React from 'react';
 import { motion } from 'motion/react';
 import { ChevronRight, Calendar, Clock, CheckCircle2, LogIn, User as UserIcon } from 'lucide-react';
 import { Program as AppProgram, Parent as AppParent, User as AppUser } from '../../types';
+import { MEMBERSHIP_TYPE } from '../../constants';
 
 interface BookingDetailsFormProps {
   program: AppProgram;
@@ -54,9 +55,32 @@ export function BookingDetailsForm({
     onBookingDataChange({ ...bookingData, isParentAttending: !bookingData.isParentAttending });
   };
 
-  const totalPrice = (parentProfile?.membership_type === 'member' 
-    ? (program.base_price * bookingData.selectedChildIds.length) * 0.9 
-    : (program.base_price * bookingData.selectedChildIds.length));
+  const calculateTotalPrice = () => {
+    let total = 0;
+    const participantCount = bookingData.selectedChildIds.length + (bookingData.isParentAttending ? 1 : 0);
+    if (participantCount === 0) return 0;
+
+    const isMember = parentProfile?.parent_organizations?.some(
+      org => org.organization_id === program.organization_id && org.membership_type === 'member'
+    );
+
+    // Find the best pricing tier
+    let pricePerPerson = 0;
+    if (program.pricing && program.pricing.length > 0) {
+      // Try to find a member price if they are a member
+      const memberPricing = isMember ? program.pricing.find(p => p.tier_label.includes('会員')) : null;
+      if (memberPricing) {
+        pricePerPerson = memberPricing.amount;
+      } else {
+        // Default to the first pricing tier
+        pricePerPerson = program.pricing[0].amount;
+      }
+    }
+
+    return pricePerPerson * participantCount;
+  };
+
+  const totalPrice = calculateTotalPrice();
 
   return (
     <motion.div 
@@ -106,14 +130,14 @@ export function BookingDetailsForm({
                       <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">日付</span>
                       <div className="flex items-center gap-2 text-zinc-900 font-bold">
                         <Calendar size={16} className="text-brand-600" />
-                        {schedule.date}
+                        {schedule.start_date ? new Date(schedule.start_date).toLocaleDateString() : ''}
                       </div>
                     </div>
                     <div className="flex flex-col">
                       <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">時間</span>
                       <div className="flex items-center gap-2 text-zinc-900 font-bold">
                         <Clock size={16} className="text-brand-600" />
-                        {schedule.start_time}
+                        {schedule.schedule_locations?.[0]?.meeting_time || ''}
                       </div>
                     </div>
                   </div>
@@ -127,8 +151,8 @@ export function BookingDetailsForm({
                     }`}>
                       {(schedule.current_participants || 0) >= schedule.capacity ? '満員' : `残り ${schedule.capacity - (schedule.current_participants || 0)} 名`}
                     </div>
-                    {schedule.location && (
-                      <span className="text-[10px] text-zinc-400 font-medium">{schedule.location}</span>
+                    {schedule.schedule_locations?.[0]?.location_name && (
+                      <span className="text-[10px] text-zinc-400 font-medium">{schedule.schedule_locations[0].location_name}</span>
                     )}
                   </div>
                 </button>
@@ -245,16 +269,25 @@ export function BookingDetailsForm({
           {/* Summary */}
           <div className="bg-zinc-900 p-8 md:p-10 rounded-[2rem] text-white space-y-4 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-brand-600/10 rounded-full blur-2xl -mr-16 -mt-16" />
-            <div className="flex justify-between text-sm text-zinc-400">
-              <span className="font-bold uppercase tracking-widest">基本料金</span>
-              <span className="font-mono">¥{(program.base_price * bookingData.selectedChildIds.length).toLocaleString()}</span>
-            </div>
-            {parentProfile?.membership_type === 'member' && bookingData.selectedChildIds.length > 0 && (
-              <div className="flex justify-between text-sm text-brand-400">
-                <span className="font-bold uppercase tracking-widest">会員割引 (10%)</span>
-                <span className="font-mono">-¥{(program.base_price * bookingData.selectedChildIds.length * 0.1).toLocaleString()}</span>
+            
+            {bookingData.selectedChildIds.length > 0 && (
+              <div className="flex justify-between text-sm text-zinc-400">
+                <span className="font-bold uppercase tracking-widest">子供料金 ({bookingData.selectedChildIds.length}名)</span>
+                <span className="font-mono">
+                  ¥{(calculateTotalPrice() / (bookingData.selectedChildIds.length + (bookingData.isParentAttending ? 1 : 0)) * bookingData.selectedChildIds.length).toLocaleString()}
+                </span>
               </div>
             )}
+            
+            {bookingData.isParentAttending && (
+              <div className="flex justify-between text-sm text-zinc-400">
+                <span className="font-bold uppercase tracking-widest">大人料金 (1名)</span>
+                <span className="font-mono">
+                  ¥{(calculateTotalPrice() / (bookingData.selectedChildIds.length + (bookingData.isParentAttending ? 1 : 0))).toLocaleString()}
+                </span>
+              </div>
+            )}
+
             <div className="pt-6 border-t border-white/10 flex justify-between items-center">
               <span className="font-display text-xl font-bold">お支払い合計</span>
               <span className="text-4xl font-display font-bold text-brand-400">

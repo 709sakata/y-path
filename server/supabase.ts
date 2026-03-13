@@ -3,6 +3,17 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? '✓' : '✗ MISSING');
+console.log('SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '✓' : '✗ MISSING');
+console.log('SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? '✓' : '✗ MISSING');
+console.log('SERVICE_ROLE_KEY:', process.env.SERVICE_ROLE_KEY ? '✓' : '✗ MISSING');
+console.log('Using key type:', (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY) ? 'service_role' : '⚠️ anon (fallback)');
+
+const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+console.log('Key prefix:', key.substring(0, 20));
+console.log('Key suffix:', key.slice(-10));
+console.log('Key length:', key.length);
+
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
 const supabaseServiceKey = 
@@ -30,11 +41,25 @@ console.log('---------------------------');
 
 let supabase: any;
 
+export const createAuthClient = () => {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+};
+
 try {
   if (!supabaseUrl || !supabaseUrl.startsWith('http')) {
     throw new Error('Invalid or missing SUPABASE_URL');
   }
-  supabase = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey);
+  supabase = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
   console.log('✅ Supabase client initialized successfully');
 } catch (error: any) {
   console.error('❌ Failed to initialize Supabase client:', error.message);

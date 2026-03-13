@@ -71,10 +71,16 @@ export const api = {
     }),
   },
   stats: {
-    get: (): Promise<DashboardStats> => fetchWithAuth('/api/stats'),
+    get: (period?: string): Promise<DashboardStats> => fetchWithAuth(period ? `/api/stats?period=${period}` : '/api/stats'),
   },
   organizations: {
     list: (): Promise<Organization[]> => fetchWithAuth('/api/organizations'),
+    create: (data: any) => fetchWithAuth('/api/organizations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }),
+    delete: (id: string) => fetchWithAuth(`/api/organizations/${id}`, { method: 'DELETE' }),
   },
   surveys: {
     import: (data: any) => fetchWithAuth('/api/surveys/import', {
@@ -84,5 +90,41 @@ export const api = {
     }),
     getByParent: (parentId: string) => fetchWithAuth(`/api/surveys/parent/${parentId}`),
     getAll: () => fetchWithAuth('/api/surveys'),
+    link: (id: string, data: any) => fetchWithAuth(`/api/surveys/${id}/link`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }),
+  },
+  users: {
+    list: () => fetchWithAuth('/api/users'),
+    updateRole: (id: string, role: string) => fetchWithAuth(`/api/users/${id}/role`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role })
+    }),
+    delete: (id: string) => fetchWithAuth(`/api/users/${id}`, { method: 'DELETE' }),
+  },
+  import: {
+    customers: (data: any) => fetchWithAuth('/api/import/customers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customers: data })
+    }),
+    reservations: (data: any) => fetchWithAuth('/api/import/reservations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reservations: data })
+    }),
+    programs: (data: any) => fetchWithAuth('/api/import/programs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ programs: data })
+    }),
+    surveys: (data: any) => fetchWithAuth('/api/import/surveys', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ surveys: data })
+    })
   }
 };

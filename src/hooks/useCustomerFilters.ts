@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Parent } from '../types';
+import { MEMBERSHIP_TYPE } from '../constants';
 
-export type CustomerFilterType = 'all' | 'member' | 'general';
+export type CustomerFilterType = 'all' | typeof MEMBERSHIP_TYPE.MEMBER | typeof MEMBERSHIP_TYPE.GENERAL;
 
 export function useCustomerFilters(customers: Parent[]) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -14,7 +15,7 @@ export function useCustomerFilters(customers: Parent[]) {
         c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.phone.includes(searchQuery);
       
-      const matchesType = filterType === 'all' || c.membership_type === filterType;
+      const matchesType = filterType === 'all' || c.parent_organizations?.[0]?.membership_type === filterType;
       
       return matchesSearch && matchesType;
     });

@@ -2,6 +2,7 @@ import * as React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Edit2, Trash2, ChevronRight } from 'lucide-react';
 import { Program } from '../types';
+import { PROGRAM_STATUS } from '../constants';
 
 interface ProgramListProps {
   programs: Program[];
@@ -61,23 +62,23 @@ export function ProgramList({ programs, onSelect, onEdit, onDelete, onAddNew }: 
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
-                      program.category === 'regular' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'
+                      program.category === 'MONTHLY' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'
                     }`}>
-                      {program.category === 'regular' ? '定期レッスン' : '不定期プログラム'}
+                      {program.category}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <div className={`w-1.5 h-1.5 rounded-full ${program.status === 'completed' ? 'bg-slate-300' : 'bg-emerald-400'}`} />
+                      <div className={`w-1.5 h-1.5 rounded-full ${program.status === PROGRAM_STATUS.COMPLETED ? 'bg-slate-300' : 'bg-emerald-400'}`} />
                       <span className={`text-xs font-bold ${
-                        program.status === 'completed' ? 'text-slate-500' : 'text-emerald-600'
+                        program.status === PROGRAM_STATUS.COMPLETED ? 'text-slate-500' : 'text-emerald-600'
                       }`}>
-                        {program.status === 'completed' ? '募集終了' : '募集中'}
+                        {program.status === PROGRAM_STATUS.COMPLETED ? '募集終了' : '募集中'}
                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="font-bold text-slate-800 text-sm">¥{program.base_price.toLocaleString()}</span>
+                    <span className="font-bold text-slate-800 text-sm">¥{program.pricing?.[0]?.amount?.toLocaleString() || '---'}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex flex-col gap-1">
@@ -86,7 +87,7 @@ export function ProgramList({ programs, onSelect, onEdit, onDelete, onAddNew }: 
                       </span>
                       {program.schedules && program.schedules.length > 0 && (
                         <span className="text-[10px] text-slate-400">
-                          次回: {program.schedules[0].date}
+                          次回: {new Date(program.schedules[0].start_date).toLocaleDateString()}
                         </span>
                       )}
                     </div>

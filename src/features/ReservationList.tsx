@@ -13,6 +13,7 @@ import {
   Download
 } from 'lucide-react';
 import { Reservation } from '../types';
+import { RESERVATION_STATUS, RESERVATION_STATUS_LABELS, MEMBERSHIP_TYPE } from '../constants';
 
 interface ReservationListProps {
   filteredReservations: Reservation[];
@@ -57,12 +58,14 @@ export function ReservationList({
 }: ReservationListProps) {
   const getStatusConfig = (status: string) => {
     switch (status) {
-      case 'pending':
-        return { label: '保留中', color: 'bg-amber-100 text-amber-600', icon: AlertCircle };
-      case 'confirmed':
-        return { label: '確定済み', color: 'bg-emerald-100 text-emerald-600', icon: CheckCircle2 };
-      case 'cancelled':
-        return { label: 'キャンセル', color: 'bg-slate-100 text-slate-400', icon: XCircle };
+      case RESERVATION_STATUS.PENDING:
+        return { label: RESERVATION_STATUS_LABELS[status], color: 'bg-amber-100 text-amber-600', icon: AlertCircle };
+      case RESERVATION_STATUS.CONFIRMED:
+        return { label: RESERVATION_STATUS_LABELS[status], color: 'bg-emerald-100 text-emerald-600', icon: CheckCircle2 };
+      case RESERVATION_STATUS.CANCELLED:
+        return { label: RESERVATION_STATUS_LABELS[status], color: 'bg-slate-100 text-slate-400', icon: XCircle };
+      case RESERVATION_STATUS.COMPLETED:
+        return { label: RESERVATION_STATUS_LABELS[status], color: 'bg-blue-100 text-blue-600', icon: CheckCircle2 };
       default:
         return { label: status, color: 'bg-slate-100 text-slate-400', icon: AlertCircle };
     }
@@ -122,7 +125,7 @@ export function ReservationList({
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex p-1 bg-slate-50 rounded-xl w-fit">
-            {(['all', 'pending', 'confirmed', 'cancelled'] as const).map((filter) => (
+            {(['all', RESERVATION_STATUS.PENDING, RESERVATION_STATUS.CONFIRMED, RESERVATION_STATUS.CANCELLED] as const).map((filter) => (
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
@@ -133,8 +136,8 @@ export function ReservationList({
                 }`}
               >
                 {filter === 'all' ? 'すべて' : 
-                 filter === 'pending' ? '保留中' : 
-                 filter === 'confirmed' ? '確定済み' : 'キャンセル'}
+                 filter === RESERVATION_STATUS.PENDING ? '保留中' : 
+                 filter === RESERVATION_STATUS.CONFIRMED ? '確定済み' : 'キャンセル'}
               </button>
             ))}
           </div>
@@ -258,9 +261,9 @@ export function ReservationList({
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col gap-1">
                         <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full w-fit ${
-                          res.membership_type === 'member' ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-500'
+                          res.membership_type === MEMBERSHIP_TYPE.MEMBER ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-500'
                         }`}>
-                          {res.membership_type === 'member' ? '会員' : '一般'}
+                          {res.membership_type === MEMBERSHIP_TYPE.MEMBER ? '会員' : '一般'}
                         </span>
                         <span className="text-sm font-bold text-slate-800">{res.parent_name}</span>
                       </div>
@@ -297,11 +300,11 @@ export function ReservationList({
                     </td>
                     <td className="px-6 py-4 text-right whitespace-nowrap">
                       <div className="flex justify-end items-center gap-2">
-                        {res.status === 'pending' && (
+                        {res.status === RESERVATION_STATUS.PENDING && (
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
-                              onUpdateStatus(res.id, 'confirmed');
+                              onUpdateStatus(res.id, RESERVATION_STATUS.CONFIRMED);
                             }}
                             className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
                             title="確定する"

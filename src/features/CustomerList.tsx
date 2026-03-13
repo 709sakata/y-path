@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Search, Download, Users, Baby, ChevronRight, Upload } from 'lucide-react';
 import { Parent } from '../types';
 import { CustomerFilterType } from '../hooks/useCustomerFilters';
+import { MEMBERSHIP_STATUS, MEMBERSHIP_TYPE } from '../constants';
 
 interface CustomerListProps {
   customers: Parent[];
@@ -63,7 +64,7 @@ export function CustomerList({
           />
         </div>
         <div className="flex p-1 bg-slate-50 rounded-xl">
-          {(['all', 'member', 'general'] as const).map((type) => (
+          {(['all', MEMBERSHIP_TYPE.MEMBER, MEMBERSHIP_TYPE.GENERAL] as const).map((type) => (
             <button
               key={type}
               onClick={() => onFilterChange(type)}
@@ -73,7 +74,7 @@ export function CustomerList({
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              {type === 'all' ? 'すべて' : type === 'member' ? '会員' : '一般'}
+              {type === 'all' ? 'すべて' : type === MEMBERSHIP_TYPE.MEMBER ? '会員' : '一般'}
             </button>
           ))}
         </div>
@@ -126,18 +127,18 @@ export function CustomerList({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
-                    customer.membership_type === 'member' ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-500'
+                    customer.parent_organizations?.[0]?.membership_type === 'member' ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-500'
                   }`}>
-                    {customer.membership_type === 'member' ? '会員' : '一般'}
+                    {customer.parent_organizations?.[0]?.membership_type === 'member' ? '会員' : '一般'}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
-                    <div className={`w-1.5 h-1.5 rounded-full ${customer.membership_status === 'active' ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                    <div className={`w-1.5 h-1.5 rounded-full ${customer.parent_organizations?.[0]?.membership_status === 'active' ? 'bg-emerald-400' : 'bg-red-400'}`} />
                     <span className={`text-xs font-bold ${
-                      customer.membership_status === 'active' ? 'text-emerald-600' : 'text-red-600'
+                      customer.parent_organizations?.[0]?.membership_status === 'active' ? 'text-emerald-600' : 'text-red-600'
                     }`}>
-                      {customer.membership_status === 'active' ? '入会中' : '退会'}
+                      {customer.parent_organizations?.[0]?.membership_status === 'active' ? '入会中' : '退会'}
                     </span>
                   </div>
                 </td>

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { User as UserIcon, Baby } from 'lucide-react';
 import { Parent as AppParent } from '../../types';
+import { MEMBERSHIP_STATUS, MEMBERSHIP_TYPE } from '../../constants';
 
 interface MyPageProfileProps {
   parentProfile: AppParent;
@@ -16,14 +17,14 @@ export function MyPageProfile({ parentProfile }: MyPageProfileProps) {
         <div className="flex flex-col md:flex-row md:items-center gap-2">
           <h2 className="text-3xl font-bold text-slate-800">{parentProfile.name} 様</h2>
           <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
-            parentProfile.membership_type === 'member' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
+            parentProfile.parent_organizations?.[0]?.membership_type === 'member' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
           }`}>
-            {parentProfile.membership_type === 'member' ? 'プレミアム会員' : '一般会員'}
+            {parentProfile.parent_organizations?.[0]?.membership_type === 'member' ? 'プレミアム会員' : '一般会員'}
           </span>
           <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
-            parentProfile.membership_status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+            parentProfile.parent_organizations?.[0]?.membership_status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
           }`}>
-            {parentProfile.membership_status === 'active' ? '入会中' : '退会済'}
+            {parentProfile.parent_organizations?.[0]?.membership_status === 'active' ? '入会中' : '退会済'}
           </span>
         </div>
         <div className="flex flex-wrap justify-center md:justify-start gap-2 pt-1">

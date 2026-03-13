@@ -3,7 +3,7 @@ import { DashboardStats, Parent, Reservation, Program, User } from '../types';
 import { api } from '../services/api';
 import { DUMMY_STATS, DUMMY_CUSTOMERS, DUMMY_RESERVATIONS, DUMMY_PROGRAMS } from '../constants/dummyData';
 
-export function useAdminData(isAdmin: boolean, user: User | null) {
+export function useAdminData(isAdmin: boolean, user: User | null, period: string = 'all') {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [customers, setCustomers] = useState<Parent[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -19,7 +19,7 @@ export function useAdminData(isAdmin: boolean, user: User | null) {
     
     try {
       const [statsData, custData, resData, programsData] = await Promise.all([
-        api.stats.get().catch(() => DUMMY_STATS),
+        api.stats.get(period).catch(() => DUMMY_STATS),
         api.customers.list().catch(() => DUMMY_CUSTOMERS),
         api.reservations.list().catch(() => DUMMY_RESERVATIONS),
         api.programs.list().catch(() => DUMMY_PROGRAMS)
@@ -56,7 +56,7 @@ export function useAdminData(isAdmin: boolean, user: User | null) {
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, user]);
+  }, [isAdmin, user, period]);
 
   return {
     stats,

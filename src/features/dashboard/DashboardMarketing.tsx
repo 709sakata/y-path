@@ -5,9 +5,10 @@ import { DashboardStats } from '../../types';
 
 interface DashboardMarketingProps {
   stats: DashboardStats;
+  periodLabel: string;
 }
 
-export function DashboardMarketing({ stats }: DashboardMarketingProps) {
+export function DashboardMarketing({ stats, periodLabel }: DashboardMarketingProps) {
   return (
     <section id="marketing" className="scroll-mt-32 space-y-12">
       <div className="flex items-center gap-4 mb-4">

@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, X, Edit2, Plus, Tag, Clock, Repeat, RefreshCw, MapPin } from 'lucide-react';
-import { format, addMonths } from 'date-fns';
-import { Program, ProgramCategory, User as AppUser, Organization } from '../types';
+import { ArrowLeft, Edit2, Plus, Tag, Clock, MapPin, Trash2 } from 'lucide-react';
+import { format } from 'date-fns';
+import { Program, ProgramCategory, User as AppUser, Organization, ProgramPricing, ProgramSchedule, ScheduleLocation, EligibilityType, PricingUnit, FireType } from '../types';
+import { PROGRAM_STATUS } from '../constants';
 import { api as appApi } from '../services/api';
-import { generateSchedules, RecurrenceRule } from '../utils/recurrence';
 
 interface ProgramFormProps {
   user: AppUser | null;
@@ -17,36 +17,51 @@ interface ProgramFormProps {
 
 export function ProgramForm({ user, editingProgramId, selectedProgram, onClose, onSubmit }: ProgramFormProps) {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [activeTab, setActiveTab] = useState<'basic' | 'schedules'>('basic');
-  const [showRecurrence, setShowRecurrence] = useState(false);
-  const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRule>({
-    frequency: 'weekly',
-    interval: 1,
-    weekDays: [1],
-    nth: 1,
-    endDate: format(addMonths(new Date(), 3), 'yyyy-MM-dd'),
-  });
+  const [activeTab, setActiveTab] = useState<'basic' | 'pricing' | 'schedules'>('basic');
 
   const [formData, setFormData] = useState({
     organization_id: selectedProgram?.organization_id || user?.organization_id || '',
+    category: (selectedProgram?.category || 'EVENT') as ProgramCategory,
     title: selectedProgram?.title || '',
     description: selectedProgram?.description || '',
-    base_price: selectedProgram?.base_price || 3000,
-    category: (selectedProgram?.category || 'irregular') as ProgramCategory,
-    status: (selectedProgram?.status === 'completed' ? 'completed' : 'active') as 'active' | 'completed',
-    schedules: selectedProgram?.schedules?.map(s => ({
-      date: s.date,
-      start_time: s.start_time,
-      end_time: s.end_time || '',
-      capacity: s.capacity,
-      location: s.location || ''
-    })) || [
+    status: (selectedProgram?.status === PROGRAM_STATUS.COMPLETED ? PROGRAM_STATUS.COMPLETED : PROGRAM_STATUS.ACTIVE) as typeof PROGRAM_STATUS[keyof typeof PROGRAM_STATUS],
+    
+    target_age_min: selectedProgram?.target_age_min || '',
+    target_age_max: selectedProgram?.target_age_max || '',
+    target_grade_min: selectedProgram?.target_grade_min || 0,
+    target_grade_max: selectedProgram?.target_grade_max || 0,
+    eligibility: (selectedProgram?.eligibility || 'open') as EligibilityType,
+    requires_certificate: selectedProgram?.requires_certificate || false,
+    lottery_based: selectedProgram?.lottery_based || false,
+    
+    capacity: selectedProgram?.capacity || 20,
+    min_participants: selectedProgram?.min_participants || 1,
+    nights: selectedProgram?.nights || 0,
+    is_annual_recurring: selectedProgram?.is_annual_recurring || false,
+    
+    pricing_unit: (selectedProgram?.pricing_unit || 'per_person') as PricingUnit,
+    
+    fire_type: (selectedProgram?.fire_type || 'none') as FireType,
+    water_activity: selectedProgram?.water_activity || false,
+    muffler_prohibited: selectedProgram?.muffler_prohibited || false,
+    
+    study_time: selectedProgram?.study_time || false,
+    parent_program: selectedProgram?.parent_program || false,
+    rental_available: selectedProgram?.rental_available || false,
+    
+    pricing: selectedProgram?.pricing?.length ? selectedProgram.pricing : [
+      { tier_label: '一般', amount: 3000, extra_fee: 0, sort_order: 0 }
+    ],
+    
+    schedules: selectedProgram?.schedules?.length ? selectedProgram.schedules : [
       {
-        date: format(new Date(), 'yyyy-MM-dd'),
-        start_time: '10:00',
-        end_time: '11:00',
+        start_date: format(new Date(), 'yyyy-MM-dd'),
+        end_date: format(new Date(), 'yyyy-MM-dd'),
         capacity: 20,
-        location: ''
+        status: 'open',
+        schedule_locations: [
+          { type: 'meeting', meeting_time: '10:00', location_id: null }
+        ]
       }
     ]
   });
@@ -66,14 +81,27 @@ export function ProgramForm({ user, editingProgramId, selectedProgram, onClose, 
     }
   };
 
-  const handleGenerateSchedules = () => {
-    const baseSchedule = formData.schedules[0];
-    const newSchedules = generateSchedules(recurrenceRule, baseSchedule, baseSchedule.date || format(new Date(), 'yyyy-MM-dd'));
-    
-    if (newSchedules.length > 0) {
-      setFormData({ ...formData, schedules: newSchedules });
-      setShowRecurrence(false);
-    }
+  const addPricing = () => {
+    setFormData({
+      ...formData,
+      pricing: [
+        ...formData.pricing,
+        { tier_label: '', amount: 0, extra_fee: 0, sort_order: formData.pricing.length }
+      ]
+    });
+  };
+
+  const removePricing = (index: number) => {
+    if (formData.pricing.length <= 1) return;
+    const newPricing = [...formData.pricing];
+    newPricing.splice(index, 1);
+    setFormData({ ...formData, pricing: newPricing });
+  };
+
+  const updatePricing = (index: number, field: string, value: any) => {
+    const newPricing = [...formData.pricing];
+    newPricing[index] = { ...newPricing[index], [field]: value };
+    setFormData({ ...formData, pricing: newPricing });
   };
 
   const addSchedule = () => {
@@ -82,11 +110,13 @@ export function ProgramForm({ user, editingProgramId, selectedProgram, onClose, 
       schedules: [
         ...formData.schedules,
         {
-          date: format(new Date(), 'yyyy-MM-dd'),
-          start_time: '10:00',
-          end_time: '11:00',
-          capacity: 20,
-          location: ''
+          start_date: format(new Date(), 'yyyy-MM-dd'),
+          end_date: format(new Date(), 'yyyy-MM-dd'),
+          capacity: formData.capacity,
+          status: 'open',
+          schedule_locations: [
+            { type: 'meeting', meeting_time: '10:00', location_id: null }
+          ]
         }
       ]
     });
@@ -158,6 +188,20 @@ export function ProgramForm({ user, editingProgramId, selectedProgram, onClose, 
         </button>
         <button
           type="button"
+          onClick={() => setActiveTab('pricing')}
+          className={`pb-3 px-2 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${
+            activeTab === 'pricing' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          料金設定
+          <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+            activeTab === 'pricing' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'
+          }`}>
+            {formData.pricing.length}
+          </span>
+        </button>
+        <button
+          type="button"
           onClick={() => setActiveTab('schedules')}
           className={`pb-3 px-2 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${
             activeTab === 'schedules' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'
@@ -173,10 +217,10 @@ export function ProgramForm({ user, editingProgramId, selectedProgram, onClose, 
       </div>
 
       <div className="mt-6">
-        {activeTab === 'basic' ? (
+        {activeTab === 'basic' && (
           <div className="max-w-2xl space-y-6">
             <section className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {!user?.organization_id && (
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">主催団体</label>
@@ -199,19 +243,10 @@ export function ProgramForm({ user, editingProgramId, selectedProgram, onClose, 
                     onChange={(e) => setFormData({ ...formData, category: e.target.value as ProgramCategory })}
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20"
                   >
-                    <option value="irregular">不定期プログラム</option>
-                    <option value="regular">定期レッスン</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">募集ステータス</label>
-                  <select 
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'completed' })}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  >
-                    <option value="active">募集中</option>
-                    <option value="completed">募集終了</option>
+                    <option value="EVENT">イベント</option>
+                    <option value="MONTHLY">月謝制</option>
+                    <option value="SEASONAL">季節プログラム</option>
+                    <option value="OVERNIGHT">宿泊</option>
                   </select>
                 </div>
               </div>
@@ -236,217 +271,196 @@ export function ProgramForm({ user, editingProgramId, selectedProgram, onClose, 
                     placeholder="プログラムの詳細を入力してください"
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">参加費 (¥)</label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">定員</label>
                   <input 
                     type="number" required
-                    value={formData.base_price}
-                    onChange={(e) => setFormData({ ...formData, base_price: Number(e.target.value) })}
+                    value={formData.capacity}
+                    onChange={(e) => setFormData({ ...formData, capacity: Number(e.target.value) })}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">宿泊数</label>
+                  <input 
+                    type="number" required
+                    value={formData.nights}
+                    onChange={(e) => setFormData({ ...formData, nights: Number(e.target.value) })}
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20"
                   />
                 </div>
               </div>
             </section>
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'pricing' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-end">
-              <div className="flex items-center gap-2">
-                <button 
-                  type="button"
-                  onClick={() => setShowRecurrence(!showRecurrence)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                    showRecurrence ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
-                  }`}
-                >
-                  <Repeat size={14} />
-                  繰り返し設定
-                </button>
-                <button 
-                  type="button"
-                  onClick={addSchedule}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all"
-                >
-                  <Plus size={14} />
-                  日程を追加
-                </button>
-              </div>
-            </div>
-
-            {showRecurrence && (
-              <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className="p-6 bg-indigo-50 rounded-3xl border border-indigo-100 space-y-6"
+            <div className="flex items-center justify-between">
+              <h4 className="font-bold text-slate-700 flex items-center gap-2">
+                <Tag size={18} className="text-indigo-600" />
+                料金設定
+              </h4>
+              <button
+                type="button"
+                onClick={addPricing}
+                className="text-sm font-bold text-indigo-600 flex items-center gap-1 hover:text-indigo-700"
               >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-xs font-bold text-indigo-400 uppercase mb-2">頻度</label>
-                    <select 
-                      value={recurrenceRule.frequency}
-                      onChange={(e) => setRecurrenceRule({ ...recurrenceRule, frequency: e.target.value })}
-                      className="w-full p-3 bg-white border border-indigo-200 rounded-xl outline-none text-sm"
+                <Plus size={16} />
+                料金を追加
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {formData.pricing.map((price, index) => (
+                <div key={index} className="bg-slate-50 p-5 rounded-2xl border border-slate-200 relative">
+                  {formData.pricing.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removePricing(index)}
+                      className="absolute top-4 right-4 text-slate-400 hover:text-red-500"
                     >
-                      <option value="daily">毎日</option>
-                      <option value="weekly">毎週</option>
-                      <option value="monthly">毎月（同じ日付）</option>
-                      <option value="monthly_nth">毎月（第◯ ◯曜日）</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-indigo-400 uppercase mb-2">終了日</label>
-                    <input 
-                      type="date"
-                      value={recurrenceRule.endDate}
-                      onChange={(e) => setRecurrenceRule({ ...recurrenceRule, endDate: e.target.value })}
-                      className="w-full p-3 bg-white border border-indigo-200 rounded-xl outline-none text-sm"
-                    />
-                  </div>
-                </div>
-
-                {recurrenceRule.frequency === 'monthly_nth' && (
-                  <div className="grid grid-cols-2 gap-6">
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-indigo-400 uppercase mb-2">第◯</label>
-                      <select 
-                        value={recurrenceRule.nth}
-                        onChange={(e) => setRecurrenceRule({ ...recurrenceRule, nth: Number(e.target.value) })}
-                        className="w-full p-3 bg-white border border-indigo-200 rounded-xl outline-none text-sm"
-                      >
-                        <option value={1}>第1</option>
-                        <option value={2}>第2</option>
-                        <option value={3}>第3</option>
-                        <option value={4}>第4</option>
-                        <option value={5}>最終</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-indigo-400 uppercase mb-2">曜日</label>
-                      <select 
-                        value={recurrenceRule.weekDays[0]}
-                        onChange={(e) => setRecurrenceRule({ ...recurrenceRule, weekDays: [Number(e.target.value)] })}
-                        className="w-full p-3 bg-white border border-indigo-200 rounded-xl outline-none text-sm"
-                      >
-                        <option value={0}>日曜日</option>
-                        <option value={1}>月曜日</option>
-                        <option value={2}>火曜日</option>
-                        <option value={3}>水曜日</option>
-                        <option value={4}>木曜日</option>
-                        <option value={5}>金曜日</option>
-                        <option value={6}>土曜日</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                {recurrenceRule.frequency === 'weekly' && (
-                  <div>
-                    <label className="block text-xs font-bold text-indigo-400 uppercase mb-3">曜日を選択</label>
-                    <div className="flex justify-between gap-2">
-                      {['日', '月', '火', '水', '木', '金', '土'].map((day, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => {
-                            const newDays = recurrenceRule.weekDays.includes(i)
-                              ? recurrenceRule.weekDays.filter(d => d !== i)
-                              : [...recurrenceRule.weekDays, i];
-                            setRecurrenceRule({ ...recurrenceRule, weekDays: newDays });
-                          }}
-                          className={`w-10 h-10 rounded-full text-xs font-bold transition-all ${
-                            recurrenceRule.weekDays.includes(i)
-                              ? 'bg-indigo-600 text-white'
-                              : 'bg-white text-indigo-400 border border-indigo-100'
-                          }`}
-                        >
-                          {day}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <button 
-                  type="button"
-                  onClick={handleGenerateSchedules}
-                  className="w-full py-3 bg-indigo-600 text-white rounded-2xl text-sm font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
-                >
-                  <RefreshCw size={16} />
-                  スケジュールを一括生成
-                </button>
-              </motion.div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {formData.schedules.map((schedule, index) => (
-                <div key={index} className="p-6 bg-slate-50 rounded-2xl space-y-4 relative border border-slate-100 group/item">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">
-                      日程 #{index + 1}
-                    </span>
-                    {formData.schedules.length > 1 && (
-                      <button 
-                        type="button"
-                        onClick={() => removeSchedule(index)}
-                        className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
-                      >
-                        <X size={16} />
-                      </button>
-                    )}
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">日付</label>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">料金ラベル</label>
                       <input 
-                        type="date" required
-                        value={schedule.date}
-                        onChange={(e) => updateSchedule(index, 'date', e.target.value)}
-                        className="w-full p-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm"
+                        type="text" required
+                        value={price.tier_label}
+                        onChange={(e) => updatePricing(index, 'tier_label', e.target.value)}
+                        className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        placeholder="例：一般、会員"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">定員 (名)</label>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">金額 (¥)</label>
+                      <input 
+                        type="number" required
+                        value={price.amount}
+                        onChange={(e) => updatePricing(index, 'amount', Number(e.target.value))}
+                        className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">追加料金 (¥)</label>
+                      <input 
+                        type="number"
+                        value={price.extra_fee}
+                        onChange={(e) => updatePricing(index, 'extra_fee', Number(e.target.value))}
+                        className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        placeholder="非会員の臨時会費など"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'schedules' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h4 className="font-bold text-slate-700 flex items-center gap-2">
+                <Clock size={18} className="text-indigo-600" />
+                開催枠
+              </h4>
+              <button
+                type="button"
+                onClick={addSchedule}
+                className="text-sm font-bold text-indigo-600 flex items-center gap-1 hover:text-indigo-700"
+              >
+                <Plus size={16} />
+                枠を追加
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {formData.schedules.map((schedule, index) => (
+                <div key={index} className="bg-slate-50 p-5 rounded-2xl border border-slate-200 relative">
+                  {formData.schedules.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeSchedule(index)}
+                      className="absolute top-4 right-4 text-slate-400 hover:text-red-500"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">開始日</label>
+                      <input 
+                        type="date" required
+                        value={schedule.start_date}
+                        onChange={(e) => updateSchedule(index, 'start_date', e.target.value)}
+                        className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">終了日</label>
+                      <input 
+                        type="date" required
+                        value={schedule.end_date}
+                        onChange={(e) => updateSchedule(index, 'end_date', e.target.value)}
+                        className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">定員</label>
                       <input 
                         type="number" required
                         value={schedule.capacity}
                         onChange={(e) => updateSchedule(index, 'capacity', Number(e.target.value))}
-                        className="w-full p-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm"
+                        className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">開始時間</label>
-                      <input 
-                        type="time" required
-                        value={schedule.start_time}
-                        onChange={(e) => updateSchedule(index, 'start_time', e.target.value)}
-                        className="w-full p-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">終了時間</label>
-                      <input 
-                        type="time" required
-                        value={schedule.end_time}
-                        onChange={(e) => updateSchedule(index, 'end_time', e.target.value)}
-                        className="w-full p-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">場所</label>
-                    <div className="relative">
-                      <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input 
-                        type="text"
-                        value={schedule.location}
-                        onChange={(e) => updateSchedule(index, 'location', e.target.value)}
-                        className="w-full p-2.5 pl-10 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm"
-                        placeholder="例：ASOBO 3F ホール"
-                      />
-                    </div>
+                  
+                  {/* Schedule Locations */}
+                  <div className="mt-4 pt-4 border-t border-slate-200">
+                    <h5 className="text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-1">
+                      <MapPin size={14} />
+                      集合・解散場所
+                    </h5>
+                    {schedule.schedule_locations?.map((loc: any, locIndex: number) => (
+                      <div key={locIndex} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+                        <div>
+                          <select
+                            value={loc.type}
+                            onChange={(e) => {
+                              const newLocs = [...(schedule.schedule_locations || [])];
+                              newLocs[locIndex].type = e.target.value;
+                              updateSchedule(index, 'schedule_locations', newLocs);
+                            }}
+                            className="w-full p-2 bg-white border border-slate-200 rounded-lg text-sm"
+                          >
+                            <option value="meeting">集合</option>
+                            <option value="dismissal">解散</option>
+                            <option value="both">集合・解散</option>
+                          </select>
+                        </div>
+                        <div>
+                          <input
+                            type="time"
+                            value={loc.meeting_time || ''}
+                            onChange={(e) => {
+                              const newLocs = [...(schedule.schedule_locations || [])];
+                              newLocs[locIndex].meeting_time = e.target.value;
+                              updateSchedule(index, 'schedule_locations', newLocs);
+                            }}
+                            className="w-full p-2 bg-white border border-slate-200 rounded-lg text-sm"
+                            placeholder="時間"
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}

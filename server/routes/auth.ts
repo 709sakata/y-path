@@ -1,10 +1,10 @@
 import express from "express";
-import { supabase } from "../supabase";
+import { supabase, createAuthClient } from "../supabase";
 
 const router = express.Router();
 
 router.post("/register", async (req, res) => {
-  const { email, password, role, parentName, phone, childName, childBirthday } = req.body;
+  const { email, password, role, parentName, phone, childName, childBirthday, organizationId } = req.body;
   
   if (!password || password.length < 6) {
     return res.status(400).json({ error: "パスワードは6文字以上で入力してください" });
@@ -20,6 +20,7 @@ router.post("/register", async (req, res) => {
         email,
         password,
         email_confirm: true,
+        app_metadata: { role: role || 'customer' },
         user_metadata: { role: role || 'customer' }
       });
       authData = data;
@@ -27,7 +28,8 @@ router.post("/register", async (req, res) => {
     } catch (adminError) {
       // Fallback to regular signUp if admin API is not available (e.g. missing service key)
       console.log("Admin createUser failed, falling back to signUp:", adminError);
-      const { data, error } = await supabase.auth.signUp({
+      const tempClient = createAuthClient();
+      const { data, error } = await tempClient.auth.signUp({
         email,
         password,
         options: {
@@ -58,9 +60,6 @@ router.post("/register", async (req, res) => {
           name: parentName, 
           email: email, 
           phone: phone,
-          membership_type: 'general',
-          membership_status: 'active',
-          joined_at: new Date().toISOString(),
           created_at: new Date().toISOString()
         }
       ]);
@@ -70,13 +69,31 @@ router.post("/register", async (req, res) => {
       throw parentError;
     }
 
+    // 2.5 Link to organization if provided
+    if (organizationId) {
+      const { error: orgError } = await supabase
+        .from('parent_organizations')
+        .insert([
+          {
+            parent_id: userId,
+            organization_id: organizationId,
+            membership_type: 'general',
+            membership_status: 'active'
+          }
+        ]);
+      
+      if (orgError) {
+        console.error("Parent organization link error:", orgError);
+        // We don't fail the whole registration if this fails, but log it
+      }
+    }
+
     // 3. If children are provided, create them
     if (req.body.children && Array.isArray(req.body.children) && req.body.children.length > 0) {
       const childrenData = req.body.children.map((child: any) => ({
         parent_id: userId,
         name: child.name,
         birthday: child.birthday,
-        notes: child.notes || "",
         is_active: true
       }));
       
@@ -96,7 +113,20 @@ router.post("/register", async (req, res) => {
       if (childError) console.error("Single child creation error:", childError);
     }
 
-    // 4. Set session
+    // 4. Link any unlinked surveys with matching email
+    if (email) {
+      const { error: linkError } = await supabase
+        .from('customer_surveys')
+        .update({ parent_id: userId })
+        .eq('email', email.toLowerCase())
+        .is('parent_id', null);
+      
+      if (linkError) {
+        console.error("Survey linking error:", linkError);
+      }
+    }
+
+    // 5. Set session
     req.session.userId = userId;
     req.session.role = role || 'admin';
     req.session.save((err) => {
@@ -115,7 +145,8 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const tempClient = createAuthClient();
+    const { data, error } = await tempClient.auth.signInWithPassword({
       email,
       password
     });
@@ -133,14 +164,14 @@ router.post("/login", async (req, res) => {
             if (unconfirmedUser) {
               await supabase.auth.admin.updateUserById(unconfirmedUser.id, { email_confirm: true });
               // Retry login once after auto-confirming
-              const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
+              const { data: retryData, error: retryError } = await tempClient.auth.signInWithPassword({
                 email,
                 password
               });
               if (!retryError && retryData.user) {
                 // Success on retry
                 const user = retryData.user;
-                const role = user.user_metadata?.role || 'admin';
+                const role = user.app_metadata?.role || user.user_metadata?.role || 'customer';
                 req.session.userId = user.id;
                 req.session.role = role;
                 let parent = null;
@@ -169,7 +200,7 @@ router.post("/login", async (req, res) => {
     if (!data.user) throw new Error("Login failed");
 
     const user = data.user;
-    const role = user.user_metadata?.role || 'admin';
+    const role = user.app_metadata?.role || user.user_metadata?.role || 'customer';
     
     req.session.userId = user.id;
     req.session.role = role; // Store role in session
@@ -203,8 +234,26 @@ router.post("/login", async (req, res) => {
 router.get("/me", async (req, res) => {
   if (req.session.userId) {
     try {
-      const role = req.session.role || 'admin';
       const userId = req.session.userId;
+      let role = req.session.role || 'customer';
+      
+      // Safely fetch latest user data from Supabase to get the most up-to-date role
+      if (supabase.auth?.admin) {
+        try {
+          const { data, error } = await supabase.auth.admin.getUserById(userId);
+          const user = data?.user;
+          if (user) {
+            role = user.app_metadata?.role || user.user_metadata?.role || role;
+            // Update session if role changed
+            if (role !== req.session.role) {
+              req.session.role = role;
+              req.session.save();
+            }
+          }
+        } catch (adminErr) {
+          console.error("Failed to fetch user role from admin API:", adminErr);
+        }
+      }
       
       const { data: parentData } = await supabase
         .from('parents')
@@ -226,7 +275,7 @@ router.get("/me", async (req, res) => {
 });
 
 router.post("/logout", async (req, res) => {
-  await supabase.auth.signOut();
+  // Do not call supabase.auth.signOut() on the global client
   req.session.destroy(() => {
     res.json({ success: true });
   });

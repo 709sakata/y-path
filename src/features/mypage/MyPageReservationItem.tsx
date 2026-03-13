@@ -2,6 +2,7 @@ import * as React from 'react';
 import { motion } from 'motion/react';
 import { CheckCircle2, XCircle, Clock3, Users, Tag } from 'lucide-react';
 import { Reservation as AppReservation } from '../../types';
+import { RESERVATION_STATUS } from '../../constants';
 
 interface MyPageReservationItemProps {
   reservation: AppReservation;
@@ -11,9 +12,9 @@ interface MyPageReservationItemProps {
 export const MyPageReservationItem: React.FC<MyPageReservationItemProps> = ({ reservation, onCancel }) => {
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'confirmed':
+      case RESERVATION_STATUS.CONFIRMED:
         return <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full text-[10px] font-bold"><CheckCircle2 size={12} /> 確定</span>;
-      case 'cancelled':
+      case RESERVATION_STATUS.CANCELLED:
         return <span className="flex items-center gap-1 text-red-600 bg-red-50 px-2 py-1 rounded-full text-[10px] font-bold"><XCircle size={12} /> キャンセル</span>;
       case 'completed':
         return <span className="flex items-center gap-1 text-slate-600 bg-slate-100 px-2 py-1 rounded-full text-[10px] font-bold"><CheckCircle2 size={12} /> 完了</span>;
@@ -47,7 +48,7 @@ export const MyPageReservationItem: React.FC<MyPageReservationItemProps> = ({ re
         </div>
       </div>
       <div className="flex items-center gap-2">
-        {reservation.status !== 'cancelled' && (reservation.status as string) !== 'completed' && (
+        {reservation.status !== RESERVATION_STATUS.CANCELLED && (reservation.status as string) !== 'completed' && (
           <button 
             onClick={() => onCancel(reservation.id)}
             className="px-4 py-2 text-xs font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-all"

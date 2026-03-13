@@ -2,6 +2,7 @@ import * as React from 'react';
 import { ArrowLeft, Mail, Phone, ShieldCheck, Baby, ChevronRight, History, CheckCircle2, XCircle, Clock3, CreditCard, Users, ExternalLink, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { Parent } from '../types';
+import { RESERVATION_STATUS, MEMBERSHIP_STATUS, MEMBERSHIP_TYPE } from '../constants';
 
 interface CustomerDetailProps {
   customer: Parent;
@@ -13,12 +14,14 @@ interface CustomerDetailProps {
 export function CustomerDetail({ customer, loading, onClose, onEdit }: CustomerDetailProps) {
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'confirmed':
+      case RESERVATION_STATUS.CONFIRMED:
         return <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full text-[10px] font-bold"><CheckCircle2 size={12} /> 確定</span>;
-      case 'cancelled':
+      case RESERVATION_STATUS.CANCELLED:
         return <span className="flex items-center gap-1 text-red-600 bg-red-50 px-2 py-1 rounded-full text-[10px] font-bold"><XCircle size={12} /> キャンセル</span>;
-      default:
+      case RESERVATION_STATUS.PENDING:
         return <span className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-1 rounded-full text-[10px] font-bold"><Clock3 size={12} /> 確認中</span>;
+      default:
+        return null;
     }
   };
 
@@ -42,9 +45,9 @@ export function CustomerDetail({ customer, loading, onClose, onEdit }: CustomerD
             <div className="flex items-center gap-3 mb-1">
               <h2 className="text-2xl font-bold text-slate-800">{customer.name} 様</h2>
               <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                customer.membership_type === 'member' ? 'bg-amber-100 text-amber-600' : 'bg-slate-200 text-slate-500'
+                customer.parent_organizations?.[0]?.membership_type === 'member' ? 'bg-amber-100 text-amber-600' : 'bg-slate-200 text-slate-500'
               }`}>
-                {customer.membership_type === 'member' ? 'プレミアム会員' : '一般会員'}
+                {customer.parent_organizations?.[0]?.membership_type === 'member' ? 'プレミアム会員' : '一般会員'}
               </span>
             </div>
             <p className="text-slate-400 text-sm flex items-center gap-4">
@@ -82,8 +85,8 @@ export function CustomerDetail({ customer, loading, onClose, onEdit }: CustomerD
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-slate-500">現在の状態</span>
-                    <span className={`text-xs font-bold ${customer.membership_status === 'active' ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {customer.membership_status === 'active' ? '有効' : '無効'}
+                    <span className={`text-xs font-bold ${customer.parent_organizations?.[0]?.membership_status === 'active' ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {customer.parent_organizations?.[0]?.membership_status === 'active' ? '有効' : '無効'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">

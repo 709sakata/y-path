@@ -44,6 +44,9 @@ import { useAdminData } from './hooks/useAdminData';
 // Dummy Data
 import { DUMMY_STATS, DUMMY_CUSTOMERS, DUMMY_RESERVATIONS, DUMMY_PROGRAMS, DUMMY_MARKET_INSIGHTS } from './constants/dummyData';
 
+// Constants
+import { RESERVATION_STATUS } from './constants';
+
 // Components
 import { StatsCard, SidebarItem } from './components/UI';
 import { AdminLayout } from './components/layouts/AdminLayout';
@@ -58,21 +61,23 @@ import { MarketIntelligence } from './features/MarketIntelligence';
 import { LTVProjection } from './features/LTVProjection';
 import { ProgramStrategyAgent } from './features/ProgramStrategyAgent';
 import { SurveysManager } from './features/SurveysManager';
+import { SystemSettings } from './features/SystemSettings';
 
 const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444'];
 
 export default function App() {
-  const [viewMode, setViewMode] = useState<'admin' | 'public' | 'mypage'>('public');
+  const [viewMode, setViewMode] = useState<'admin' | 'public' | 'mypage' | 'settings'>('public');
   const { user, parentProfile, loading, login, logout, isAdmin, refreshAuth } = useAuth();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'crm' | 'reservations' | 'programs' | 'market' | 'projection' | 'strategy' | 'surveys'>('dashboard');
+  const [period, setPeriod] = useState<string>('all');
   
-  const { stats, customers, reservations, programs, refreshData } = useAdminData(isAdmin, user);
+  const { stats, customers, reservations, programs, refreshData } = useAdminData(isAdmin, user, period);
 
   useEffect(() => {
     if (isAdmin) {
       refreshData();
     }
-  }, [isAdmin, activeTab, refreshData]);
+  }, [isAdmin, activeTab, period, refreshData]);
 
   useEffect(() => {
     if (viewMode === 'admin' && user && user.role !== 'admin') {
@@ -133,6 +138,10 @@ export default function App() {
     }} />;
   }
 
+  if (viewMode === 'settings') {
+    return <SystemSettings onBack={() => setViewMode('admin')} />;
+  }
+
   return (
     <AdminLayout
       user={user}
@@ -140,7 +149,8 @@ export default function App() {
       onTabChange={setActiveTab}
       onLogout={handleLogout}
       onSwitchToPublic={() => setViewMode('public')}
-      pendingReservationsCount={reservations.filter(r => r.status === 'pending').length}
+      onSwitchToSettings={() => setViewMode('settings')}
+      pendingReservationsCount={reservations.filter(r => r.status === RESERVATION_STATUS.PENDING).length}
     >
       <AnimatePresence mode="wait">
         {activeTab === 'dashboard' && stats && (
@@ -154,6 +164,8 @@ export default function App() {
               stats={stats} 
               reservations={reservations} 
               onViewProjection={() => setActiveTab('projection')} 
+              period={period}
+              onPeriodChange={setPeriod}
             />
           </motion.div>
         )}

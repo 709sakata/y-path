@@ -13,6 +13,8 @@ import reservationRoutes from "./server/routes/reservations";
 import statsRoutes from "./server/routes/stats";
 import organizationRoutes from "./server/routes/organizations";
 import surveysRoutes from "./server/routes/surveys";
+import usersRoutes from "./server/routes/users";
+import importRoutes from "./server/routes/import";
 
 declare module "express-session" {
   interface SessionData {
@@ -65,6 +67,8 @@ async function startServer() {
   app.use("/api/stats", statsRoutes);
   app.use("/api/organizations", organizationRoutes);
   app.use("/api/surveys", surveysRoutes);
+  app.use("/api/users", usersRoutes);
+  app.use("/api/import", importRoutes);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

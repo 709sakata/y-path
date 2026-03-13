@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { motion } from 'motion/react';
 import { Program as AppProgram, Parent as AppParent } from '../../types';
+import { MEMBERSHIP_TYPE } from '../../constants';
 
 interface BookingConfirmStepProps {
   program: AppProgram;
@@ -25,9 +26,33 @@ export function BookingConfirmStep({
 }: BookingConfirmStepProps) {
   const schedule = program.schedules?.find(s => s.id === selectedScheduleId);
   const participantCount = bookingData.selectedChildIds.length + (bookingData.isParentAttending ? 1 : 0);
-  const totalPrice = (parentProfile?.membership_type === 'member' 
-    ? (program.base_price * participantCount) * 0.9 
-    : (program.base_price * participantCount));
+  
+  const calculateTotalPrice = () => {
+    let total = 0;
+    const participantCount = bookingData.selectedChildIds.length + (bookingData.isParentAttending ? 1 : 0);
+    if (participantCount === 0) return 0;
+
+    const isMember = parentProfile?.parent_organizations?.some(
+      org => org.organization_id === program.organization_id && org.membership_type === 'member'
+    );
+
+    // Find the best pricing tier
+    let pricePerPerson = 0;
+    if (program.pricing && program.pricing.length > 0) {
+      // Try to find a member price if they are a member
+      const memberPricing = isMember ? program.pricing.find(p => p.tier_label.includes('会員')) : null;
+      if (memberPricing) {
+        pricePerPerson = memberPricing.amount;
+      } else {
+        // Default to the first pricing tier
+        pricePerPerson = program.pricing[0].amount;
+      }
+    }
+
+    return pricePerPerson * participantCount;
+  };
+
+  const totalPrice = calculateTotalPrice();
 
   return (
     <motion.div 
@@ -50,7 +75,7 @@ export function BookingConfirmStep({
             <div className="flex justify-between">
               <span className="text-slate-400 text-sm">日時</span>
               <span className="text-slate-800 font-bold">
-                {schedule?.date} {schedule?.start_time}
+                {schedule?.start_date ? new Date(schedule.start_date).toLocaleDateString() : ''} {schedule?.schedule_locations?.[0]?.meeting_time || ''}
               </span>
             </div>
             <div className="flex justify-between">

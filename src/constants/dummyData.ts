@@ -23,27 +23,27 @@ export const DUMMY_PROGRAMS: Program[] = [
     title: '春の親子ヨガ教室',
     description: '初心者大歓迎！親子で楽しく体を動かしましょう。専門のインストラクターが丁寧に指導します。',
     category: 'irregular',
-    base_price: 3500,
     capacity: 15,
     status: 'active',
+    pricing: [
+      { id: 'dp-1', program_id: 'dummy-1', tier_label: '一般', amount: 3500 }
+    ],
     schedules: [
       {
         id: 'ds-1',
         program_id: 'dummy-1',
-        date: '2024-04-15',
-        start_time: '10:00',
-        end_time: '11:30',
-        location: 'ASOBO 3F ホール',
-        capacity: 15
+        start_date: '2024-04-15T10:00:00',
+        end_date: '2024-04-15T11:30:00',
+        capacity: 15,
+        schedule_locations: [{ id: 'dl-1', schedule_id: 'ds-1', location_name: 'ASOBO 3F ホール', meeting_time: '10:00', dismissal_time: '11:30' }]
       },
       {
         id: 'ds-2',
         program_id: 'dummy-1',
-        date: '2024-04-22',
-        start_time: '10:00',
-        end_time: '11:30',
-        location: 'ASOBO 3F ホール',
-        capacity: 15
+        start_date: '2024-04-22T10:00:00',
+        end_date: '2024-04-22T11:30:00',
+        capacity: 15,
+        schedule_locations: [{ id: 'dl-2', schedule_id: 'ds-2', location_name: 'ASOBO 3F ホール', meeting_time: '10:00', dismissal_time: '11:30' }]
       }
     ]
   },
@@ -54,18 +54,19 @@ export const DUMMY_PROGRAMS: Program[] = [
     title: 'わんぱく水泳教室',
     description: '水が苦手なお子様でも大丈夫。遊びを取り入れながら楽しく泳ぎの基本を学びます。',
     category: 'regular',
-    base_price: 5000,
     capacity: 20,
     status: 'active',
+    pricing: [
+      { id: 'dp-2', program_id: 'dummy-2', tier_label: '一般', amount: 5000 }
+    ],
     schedules: [
       {
         id: 'ds-3',
         program_id: 'dummy-2',
-        date: '2024-05-01',
-        start_time: '15:30',
-        end_time: '16:30',
-        location: 'ASOBO プール',
-        capacity: 20
+        start_date: '2024-05-01T15:30:00',
+        end_date: '2024-05-01T16:30:00',
+        capacity: 20,
+        schedule_locations: [{ id: 'dl-3', schedule_id: 'ds-3', location_name: 'ASOBO プール', meeting_time: '15:30', dismissal_time: '16:30' }]
       }
     ]
   }

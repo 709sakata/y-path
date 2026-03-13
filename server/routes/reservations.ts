@@ -20,13 +20,19 @@ router.get("/", isAdmin, async (req, res) => {
         parents (
           name,
           phone,
-          membership_type,
-          organization_id
+          parent_organizations (
+            membership_type,
+            organization_id
+          )
         ),
-        program_schedules (
-          date,
-          start_time,
-          programs (title, organization_id)
+        program_schedules!inner (
+          start_date,
+          end_date,
+          programs!inner (title, organization_id),
+          schedule_locations (
+            meeting_time,
+            dismissal_time
+          )
         ),
         attendance (
           *,
@@ -36,9 +42,8 @@ router.get("/", isAdmin, async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (userProfile?.organization_id) {
-      // In a real app, we'd filter by program's organization_id
-      // For now, we'll filter by parent's organization_id as a proxy
-      query = query.eq('parents.organization_id', userProfile.organization_id);
+      // Filter by program's organization_id
+      query = query.eq('program_schedules.programs.organization_id', userProfile.organization_id);
     }
 
     const { data, error } = await query;
@@ -46,15 +51,19 @@ router.get("/", isAdmin, async (req, res) => {
     if (error) throw error;
 
     // Map to match the previous structure if needed, or return as is
-    const mapped = data.map((r: any) => ({
-      ...r,
-      parent_name: r.parents?.name,
-      parent_phone: r.parents?.phone,
-      membership_type: r.parents?.membership_type,
-      program_title: r.program_schedules?.programs?.title,
-      date: r.program_schedules?.date,
-      time: r.program_schedules?.start_time
-    }));
+    const mapped = data.map((r: any) => {
+      const orgId = r.program_schedules?.programs?.organization_id;
+      const parentOrg = r.parents?.parent_organizations?.find((po: any) => po.organization_id === orgId);
+      return {
+        ...r,
+        parent_name: r.parents?.name,
+        parent_phone: r.parents?.phone,
+        membership_type: parentOrg?.membership_type || 'general',
+        program_title: r.program_schedules?.programs?.title,
+        date: r.program_schedules?.start_date,
+        time: r.program_schedules?.schedule_locations?.[0]?.meeting_time || ''
+      };
+    });
 
     res.json(mapped);
   } catch (e: any) {

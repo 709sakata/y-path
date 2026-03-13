@@ -26,6 +26,7 @@ interface AdminLayoutProps {
   onTabChange: (tab: any) => void;
   onLogout: () => void;
   onSwitchToPublic: () => void;
+  onSwitchToSettings: () => void;
   pendingReservationsCount: number;
   children: React.ReactNode;
 }
@@ -36,6 +37,7 @@ export function AdminLayout({
   onTabChange,
   onLogout,
   onSwitchToPublic,
+  onSwitchToSettings,
   pendingReservationsCount,
   children
 }: AdminLayoutProps) {
@@ -57,7 +59,7 @@ export function AdminLayout({
             </div>
             <div>
               <h1 className="font-display text-xl font-bold tracking-tight text-white leading-none">ASOBO</h1>
-              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Admin Panel</span>
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">太子遊びと冒険の森</span>
             </div>
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-zinc-400">
@@ -128,9 +130,11 @@ export function AdminLayout({
             </button>
             <div className="hidden md:block">
               <div className="flex items-center gap-3">
-                <p className="font-display text-sm font-bold text-zinc-900">
-                  {user?.organization_id ? '団体管理パネル' : 'プラットフォーム管理'}
-                </p>
+                {user?.organization_id && (
+                  <p className="font-display text-sm font-bold text-zinc-900">
+                    団体管理パネル
+                  </p>
+                )}
                 {user?.organization_id && (
                   <span className="px-3 py-1 bg-brand-50 text-brand-600 text-[10px] font-bold rounded-full border border-brand-100 flex items-center gap-1.5 uppercase tracking-widest">
                     <Building2 size={10} />
@@ -181,6 +185,7 @@ export function AdminLayout({
                     <button
                       onClick={() => {
                         setIsUserMenuOpen(false);
+                        onSwitchToSettings();
                       }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-600 text-sm hover:bg-slate-50 transition-all"
                     >

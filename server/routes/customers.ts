@@ -8,18 +8,19 @@ router.get("/", isAdmin, async (req, res) => {
   const userId = req.session.userId;
   try {
     const { data: userProfile } = await supabase
-      .from('parents')
+      .from('parent_organizations')
       .select('organization_id')
-      .eq('id', userId)
+      .eq('parent_id', userId)
+      .limit(1)
       .single();
 
     let query = supabase
       .from('parents')
-      .select('*, children(*)')
+      .select('*, children(*), parent_organizations!inner(*)')
       .order('created_at', { ascending: false });
 
     if (userProfile?.organization_id) {
-      query = query.eq('organization_id', userProfile.organization_id);
+      query = query.eq('parent_organizations.organization_id', userProfile.organization_id);
     }
 
     const { data, error } = await query;
@@ -62,7 +63,7 @@ router.get("/:id", async (req, res) => {
   try {
     const { data: parent, error: parentError } = await supabase
       .from('parents')
-      .select('*, children(*)')
+      .select('*, children(*), parent_organizations(*)')
       .eq('id', targetParentId)
       .single();
 
@@ -79,9 +80,13 @@ router.get("/:id", async (req, res) => {
       .select(`
         *,
         program_schedules (
-          date,
-          start_time,
-          programs (title)
+          start_date,
+          end_date,
+          programs (title),
+          schedule_locations (
+            meeting_time,
+            dismissal_time
+          )
         ),
         attendance (
           *,
@@ -96,8 +101,8 @@ router.get("/:id", async (req, res) => {
     const mappedReservations = reservations.map((r: any) => ({
       ...r,
       program_title: r.program_schedules?.programs?.title,
-      date: r.program_schedules?.date,
-      time: r.program_schedules?.start_time
+      date: r.program_schedules?.start_date,
+      time: r.program_schedules?.schedule_locations?.[0]?.meeting_time || ''
     }));
 
     const { data: surveys, error: surveysError } = await supabase
@@ -117,7 +122,7 @@ router.get("/:id", async (req, res) => {
 
 router.put("/:id", isAdmin, async (req, res) => {
   const { id } = req.params;
-  const { name, email, phone, membership_type, membership_status, children } = req.body;
+  const { name, email, phone, parent_organizations, children } = req.body;
 
   try {
     // 1. Update parent profile
@@ -126,13 +131,40 @@ router.put("/:id", isAdmin, async (req, res) => {
       .update({
         name,
         email,
-        phone,
-        membership_type,
-        membership_status
+        phone
       })
       .eq('id', id);
 
     if (parentError) throw parentError;
+
+    // Update parent_organizations if provided
+    if (parent_organizations && Array.isArray(parent_organizations)) {
+      // Get admin's organization_id if needed
+      let adminOrgId = null;
+      if (req.session.role === 'admin') {
+        const { data: adminProfile } = await supabase
+          .from('parents')
+          .select('organization_id')
+          .eq('id', req.session.userId)
+          .single();
+        adminOrgId = adminProfile?.organization_id;
+      }
+
+      for (const org of parent_organizations) {
+        const targetOrgId = org.organization_id || adminOrgId;
+        if (targetOrgId) {
+          const { error: orgError } = await supabase
+            .from('parent_organizations')
+            .upsert({
+              parent_id: id,
+              organization_id: targetOrgId,
+              membership_type: org.membership_type,
+              membership_status: org.membership_status
+            }, { onConflict: 'parent_id, organization_id' });
+          if (orgError) throw orgError;
+        }
+      }
+    }
 
     // 2. Handle children updates if provided
     if (children && Array.isArray(children)) {
@@ -144,7 +176,6 @@ router.put("/:id", isAdmin, async (req, res) => {
             .update({
               name: child.name,
               birthday: child.birthday,
-              notes: child.notes,
               is_active: child.is_active ?? true
             })
             .eq('id', child.id)
@@ -158,7 +189,6 @@ router.put("/:id", isAdmin, async (req, res) => {
               parent_id: id,
               name: child.name,
               birthday: child.birthday,
-              notes: child.notes,
               is_active: true
             }]);
           if (childError) throw childError;

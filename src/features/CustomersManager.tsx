@@ -60,7 +60,7 @@ export function CustomersManager({ customers, onRefresh }: CustomersManagerProps
 
   const handleExport = () => {
     const headers = ['ID', '名前', 'メール', '電話', '会員種別', 'ステータス'];
-    const rows = filteredCustomers.map(c => [c.id, c.name, c.email, c.phone, c.membership_type, c.membership_status]);
+    const rows = filteredCustomers.map(c => [c.id, c.name, c.email, c.phone, c.parent_organizations?.[0]?.membership_type || '', c.parent_organizations?.[0]?.membership_status || '']);
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");

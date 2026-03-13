@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useState } from 'react';
 import { ArrowLeft, X, AlertCircle, User, Baby, Plus, Trash2, Save } from 'lucide-react';
 import { Parent } from '../types';
+import { MEMBERSHIP_STATUS, MEMBERSHIP_TYPE } from '../constants';
 
 interface CustomerEditProps {
   customer: Parent;
@@ -16,8 +17,8 @@ export function CustomerEdit({ customer, onBack, onSubmit }: CustomerEditProps) 
     name: customer.name,
     email: customer.email,
     phone: customer.phone,
-    membership_type: customer.membership_type,
-    membership_status: customer.membership_status,
+    membership_type: customer.parent_organizations?.[0]?.membership_type || MEMBERSHIP_TYPE.GENERAL,
+    membership_status: customer.parent_organizations?.[0]?.membership_status || MEMBERSHIP_STATUS.ACTIVE,
     children: customer.children?.map(c => ({ ...c })) || []
   });
 
@@ -27,7 +28,17 @@ export function CustomerEdit({ customer, onBack, onSubmit }: CustomerEditProps) 
     setIsSaving(true);
     setEditError('');
     try {
-      await onSubmit(editForm);
+      const submitData = {
+        ...editForm,
+        parent_organizations: [
+          {
+            organization_id: customer.parent_organizations?.[0]?.organization_id,
+            membership_type: editForm.membership_type,
+            membership_status: editForm.membership_status
+          }
+        ]
+      };
+      await onSubmit(submitData);
     } catch (error: any) {
       setEditError(error.error || '更新に失敗しました');
     } finally {
@@ -120,8 +131,8 @@ export function CustomerEdit({ customer, onBack, onSubmit }: CustomerEditProps) 
                   onChange={(e) => setEditForm({ ...editForm, membership_type: e.target.value })}
                   className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20"
                 >
-                  <option value="general">一般会員</option>
-                  <option value="member">プレミアム会員</option>
+                  <option value={MEMBERSHIP_TYPE.GENERAL}>一般会員</option>
+                  <option value={MEMBERSHIP_TYPE.MEMBER}>プレミアム会員</option>
                 </select>
               </div>
               <div>
@@ -131,8 +142,8 @@ export function CustomerEdit({ customer, onBack, onSubmit }: CustomerEditProps) 
                   onChange={(e) => setEditForm({ ...editForm, membership_status: e.target.value })}
                   className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20"
                 >
-                  <option value="active">有効</option>
-                  <option value="withdrawn">退会</option>
+                  <option value={MEMBERSHIP_STATUS.ACTIVE}>有効</option>
+                  <option value={MEMBERSHIP_STATUS.WITHDRAWN}>退会</option>
                 </select>
               </div>
             </div>

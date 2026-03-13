@@ -19,6 +19,8 @@ import { BookingSuccessStep } from './booking/BookingSuccessStep';
 import { BookingAuthModal } from './booking/BookingAuthModal';
 import { BookingRegisterForm } from './booking/BookingRegisterForm';
 
+import { MEMBERSHIP_TYPE } from '../constants';
+
 interface PublicBookingPageProps {
   user: AppUser | null;
   parentProfile: AppParent | null;
@@ -98,7 +100,7 @@ export function PublicBookingPage({
 
     const endpoint = step === 'register' ? '/api/auth/register' : '/api/auth/login';
     const body = step === 'register'
-      ? { ...registerForm, role: 'customer' }
+      ? { ...registerForm, role: 'customer', organizationId: selectedProgram?.organization_id }
       : loginForm;
 
     try {
@@ -145,9 +147,21 @@ export function PublicBookingPage({
         return;
       }
 
-      const totalPrice = parentProfile.membership_type === 'member' 
-        ? (selectedProgram.base_price * participantCount) * 0.9 
-        : (selectedProgram.base_price * participantCount);
+      const isMember = parentProfile?.parent_organizations?.some(
+        org => org.organization_id === selectedProgram.organization_id && org.membership_type === 'member'
+      );
+
+      let pricePerPerson = 0;
+      if (selectedProgram.pricing && selectedProgram.pricing.length > 0) {
+        const memberPricing = isMember ? selectedProgram.pricing.find(p => p.tier_label.includes('会員')) : null;
+        if (memberPricing) {
+          pricePerPerson = memberPricing.amount;
+        } else {
+          pricePerPerson = selectedProgram.pricing[0].amount;
+        }
+      }
+
+      const totalPrice = pricePerPerson * participantCount;
 
       const res = await fetch('/api/reservations', {
         method: 'POST',
@@ -182,7 +196,7 @@ export function PublicBookingPage({
           </div>
           <div className="flex flex-col">
             <span className="font-display font-bold text-zinc-900 leading-tight">ASOBO</span>
-            <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">体験予約プラットフォーム</span>
+            <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">太子遊びと冒険の森</span>
           </div>
         </div>
         <div className="flex items-center gap-4">

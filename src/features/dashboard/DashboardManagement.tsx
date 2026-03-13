@@ -7,9 +7,10 @@ import { StatsCard } from '../../components/UI';
 interface DashboardManagementProps {
   stats: DashboardStats;
   onViewProjection: () => void;
+  periodLabel: string;
 }
 
-export function DashboardManagement({ stats, onViewProjection }: DashboardManagementProps) {
+export function DashboardManagement({ stats, onViewProjection, periodLabel }: DashboardManagementProps) {
   return (
     <section id="management" className="scroll-mt-32 space-y-12">
       <div className="flex items-center justify-between mb-4">
@@ -49,7 +50,7 @@ export function DashboardManagement({ stats, onViewProjection }: DashboardManage
           trendUp={true} 
         />
         <StatsCard 
-          title="月次売上" 
+          title="期間内売上" 
           value={`¥${stats.monthlyRevenue.toLocaleString()}`} 
           icon={DollarSign} 
           trend="+8.1%" 
@@ -72,7 +73,7 @@ export function DashboardManagement({ stats, onViewProjection }: DashboardManage
               <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest mt-1">体験 vs ビジター vs 正規会員</p>
             </div>
             <div className="px-4 py-2 bg-zinc-50 rounded-xl border border-zinc-100 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-              直近30日間
+              {periodLabel}
             </div>
           </div>
           <div className="h-80">

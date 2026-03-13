@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { Reservation } from '../types';
+import { RESERVATION_STATUS, ACTUAL_ATTENDANCE_STATUS } from '../constants';
 import { api as appApi } from '../services/api';
 import { useReservationFilters } from '../hooks/useReservationFilters';
 import { ReservationList } from './ReservationList';
@@ -22,8 +23,8 @@ export function ReservationsManager({ reservations, onRefresh, onUnauthorized }:
 
   const stats = {
     total: reservations.length,
-    pending: reservations.filter(r => r.status === 'pending').length,
-    confirmed: reservations.filter(r => r.status === 'confirmed').length
+    pending: reservations.filter(r => r.status === RESERVATION_STATUS.PENDING).length,
+    confirmed: reservations.filter(r => r.status === RESERVATION_STATUS.CONFIRMED).length
   };
 
   const handleUpdateStatus = async (id: string, status: string) => {
@@ -45,7 +46,7 @@ export function ReservationsManager({ reservations, onRefresh, onUnauthorized }:
   const handleUpdateAttendance = async (attendanceId: string, status: string) => {
     try {
       // Simulate API call
-      console.log(`出席状況を「${status === 'attended' ? '出席' : '欠席'}」に更新しました（デモ）`);
+      console.log(`出席状況を「${status === ACTUAL_ATTENDANCE_STATUS.ATTENDED ? '出席' : '欠席'}」に更新しました（デモ）`);
       onRefresh();
     } catch (error) {
       console.error('出席状況の更新に失敗しました');

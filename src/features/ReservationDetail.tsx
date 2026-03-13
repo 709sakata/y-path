@@ -19,6 +19,8 @@ import {
 import { format } from 'date-fns';
 import { Reservation } from '../types';
 
+import { RESERVATION_STATUS, RESERVATION_STATUS_LABELS, MEMBERSHIP_TYPE, ACTUAL_ATTENDANCE_STATUS } from '../constants';
+
 interface ReservationDetailProps {
   reservation: Reservation;
   onClose: () => void;
@@ -34,12 +36,14 @@ export function ReservationDetail({
 }: ReservationDetailProps) {
   const getStatusConfig = (status: string) => {
     switch (status) {
-      case 'pending':
-        return { label: '保留中', color: 'bg-amber-100 text-amber-600', icon: AlertCircle };
-      case 'confirmed':
-        return { label: '確定済み', color: 'bg-emerald-100 text-emerald-600', icon: CheckCircle2 };
-      case 'cancelled':
-        return { label: 'キャンセル', color: 'bg-slate-100 text-slate-400', icon: XCircle };
+      case RESERVATION_STATUS.PENDING:
+        return { label: RESERVATION_STATUS_LABELS[status], color: 'bg-amber-100 text-amber-600', icon: AlertCircle };
+      case RESERVATION_STATUS.CONFIRMED:
+        return { label: RESERVATION_STATUS_LABELS[status], color: 'bg-emerald-100 text-emerald-600', icon: CheckCircle2 };
+      case RESERVATION_STATUS.CANCELLED:
+        return { label: RESERVATION_STATUS_LABELS[status], color: 'bg-slate-100 text-slate-400', icon: XCircle };
+      case RESERVATION_STATUS.COMPLETED:
+        return { label: RESERVATION_STATUS_LABELS[status], color: 'bg-blue-100 text-blue-600', icon: CheckCircle2 };
       default:
         return { label: status, color: 'bg-slate-100 text-slate-400', icon: AlertCircle };
     }
@@ -76,18 +80,18 @@ export function ReservationDetail({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {reservation.status === 'pending' && (
+          {reservation.status === RESERVATION_STATUS.PENDING && (
             <button 
-              onClick={() => onUpdateStatus(reservation.id, 'confirmed')}
+              onClick={() => onUpdateStatus(reservation.id, RESERVATION_STATUS.CONFIRMED)}
               className="px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2"
             >
               <CheckCircle2 size={18} />
               予約を確定する
             </button>
           )}
-          {reservation.status !== 'cancelled' && (
+          {reservation.status !== RESERVATION_STATUS.CANCELLED && (
             <button 
-              onClick={() => onUpdateStatus(reservation.id, 'cancelled')}
+              onClick={() => onUpdateStatus(reservation.id, RESERVATION_STATUS.CANCELLED)}
               className="px-6 py-3 bg-white text-red-500 border border-red-100 rounded-2xl font-bold hover:bg-red-50 transition-all"
             >
               予約をキャンセル
@@ -146,9 +150,9 @@ export function ReservationDetail({
                 <p className="text-sm text-slate-600">{reservation.parent_phone || '未登録'}</p>
               </div>
               <div className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${
-                reservation.membership_type === 'member' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'
+                reservation.membership_type === MEMBERSHIP_TYPE.MEMBER ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'
               }`}>
-                {reservation.membership_type === 'member' ? '会員' : '一般'}
+                {reservation.membership_type === MEMBERSHIP_TYPE.MEMBER ? '会員' : '一般'}
               </div>
             </div>
           </section>
@@ -182,9 +186,9 @@ export function ReservationDetail({
                   
                   <div className="flex items-center gap-2">
                     <button 
-                      onClick={() => onUpdateAttendance(a.id, 'attended')}
+                      onClick={() => onUpdateAttendance(a.id, ACTUAL_ATTENDANCE_STATUS.ATTENDED)}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
-                        a.actual_status === 'attended' 
+                        a.actual_status === ACTUAL_ATTENDANCE_STATUS.ATTENDED 
                           ? 'bg-emerald-600 text-white shadow-md' 
                           : 'bg-slate-50 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600'
                       }`}
@@ -193,9 +197,9 @@ export function ReservationDetail({
                       出席
                     </button>
                     <button 
-                      onClick={() => onUpdateAttendance(a.id, 'absent')}
+                      onClick={() => onUpdateAttendance(a.id, ACTUAL_ATTENDANCE_STATUS.ABSENT)}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
-                        a.actual_status === 'absent' 
+                        a.actual_status === ACTUAL_ATTENDANCE_STATUS.ABSENT 
                           ? 'bg-red-600 text-white shadow-md' 
                           : 'bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-600'
                       }`}

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ArrowLeft, Calendar, Tag, Trash2, Clock, Users, MapPin, User, CheckCircle2, AlertCircle, XCircle } from 'lucide-react';
 import { Program, Reservation } from '../types';
+import { PROGRAM_STATUS, PROGRAM_STATUS_LABELS, RESERVATION_STATUS } from '../constants';
 
 interface ProgramDetailProps {
   program: Program;
@@ -13,9 +14,9 @@ interface ProgramDetailProps {
 export function ProgramDetail({ program, reservations, onClose, onEdit, onDelete }: ProgramDetailProps) {
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'confirmed': return <CheckCircle2 size={14} className="text-emerald-500" />;
-      case 'pending': return <AlertCircle size={14} className="text-amber-500" />;
-      case 'cancelled': return <XCircle size={14} className="text-slate-400" />;
+      case RESERVATION_STATUS.CONFIRMED: return <CheckCircle2 size={14} className="text-emerald-500" />;
+      case RESERVATION_STATUS.PENDING: return <AlertCircle size={14} className="text-amber-500" />;
+      case RESERVATION_STATUS.CANCELLED: return <XCircle size={14} className="text-slate-400" />;
       default: return null;
     }
   };
@@ -33,21 +34,21 @@ export function ProgramDetail({ program, reservations, onClose, onEdit, onDelete
             <ArrowLeft size={24} />
           </button>
           <div className="h-8 w-px bg-slate-200" />
-          <div className={`p-3 rounded-xl ${program.category === 'regular' ? 'bg-blue-600' : 'bg-purple-600'} text-white shadow-sm`}>
+          <div className={`p-3 rounded-xl ${program.category === 'MONTHLY' ? 'bg-blue-600' : 'bg-purple-600'} text-white shadow-sm`}>
             <Calendar size={24} />
           </div>
           <div>
             <h3 className="text-2xl font-bold text-slate-800">{program.title}</h3>
             <div className="flex items-center gap-3 mt-1">
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                program.category === 'regular' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
+                program.category === 'MONTHLY' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
               }`}>
-                {program.category === 'regular' ? '定期プログラム' : '不定期プログラム'}
+                {program.category}
               </span>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                program.status === 'completed' ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-600'
+                program.status === PROGRAM_STATUS.COMPLETED ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-600'
               }`}>
-                {program.status === 'completed' ? '募集終了' : '募集中'}
+                {program.status === PROGRAM_STATUS.COMPLETED ? '募集終了' : '募集中'}
               </span>
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">ID: {program.id}</span>
             </div>
@@ -79,8 +80,13 @@ export function ProgramDetail({ program, reservations, onClose, onEdit, onDelete
             <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{program.description}</p>
           </div>
           <div className="w-full md:w-auto md:min-w-[160px] bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-            <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">基本料金</p>
-            <p className="text-xl font-bold text-indigo-600">¥{program.base_price.toLocaleString()}</p>
+            <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">料金</p>
+            {program.pricing?.map((p, i) => (
+              <div key={i} className="flex justify-between items-center mb-1">
+                <span className="text-xs text-slate-500">{p.tier_label}</span>
+                <span className="text-sm font-bold text-indigo-600">¥{p.amount.toLocaleString()}</span>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -97,7 +103,7 @@ export function ProgramDetail({ program, reservations, onClose, onEdit, onDelete
           <div className="flex gap-6 overflow-x-auto pb-6 snap-x">
             {program.schedules?.map(schedule => {
               const scheduleReservations = reservations.filter(r => r.program_schedule_id === schedule.id);
-              const confirmedCount = scheduleReservations.filter(r => r.status === 'confirmed').length;
+              const confirmedCount = scheduleReservations.filter(r => r.status === RESERVATION_STATUS.CONFIRMED).length;
 
               return (
                 <div key={schedule.id} className="min-w-[320px] max-w-[320px] flex-shrink-0 snap-start flex flex-col bg-slate-50/50 rounded-3xl border border-slate-200 overflow-hidden">
@@ -106,28 +112,24 @@ export function ProgramDetail({ program, reservations, onClose, onEdit, onDelete
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-slate-800">
                         <Calendar size={16} className="text-indigo-600" />
-                        <span className="font-bold">{schedule.date}</span>
+                        <span className="font-bold text-sm">{new Date(schedule.start_date).toLocaleDateString()} ~ {new Date(schedule.end_date).toLocaleDateString()}</span>
                       </div>
                       <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                        受付中
+                        {schedule.status === 'open' ? '受付中' : schedule.status === 'waitlist' ? 'キャンセル待ち' : '受付終了'}
                       </span>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-slate-500">
-                      <div className="flex items-center gap-1">
-                        <Clock size={14} />
-                        {schedule.start_time} - {schedule.end_time}
-                      </div>
                       <div className="flex items-center gap-1">
                         <Users size={14} />
                         {confirmedCount} / {schedule.capacity}名
                       </div>
                     </div>
-                    {schedule.location && (
-                      <div className="flex items-center gap-1 text-xs text-slate-400">
+                    {schedule.schedule_locations?.map((loc: any, i: number) => (
+                      <div key={i} className="flex items-center gap-1 text-xs text-slate-400">
                         <MapPin size={14} />
-                        {schedule.location}
+                        <span>{loc.type === 'meeting' ? '集合' : loc.type === 'dismissal' ? '解散' : '集合・解散'}: {loc.meeting_time}</span>
                       </div>
-                    )}
+                    ))}
                     
                     {/* Progress Bar */}
                     <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">

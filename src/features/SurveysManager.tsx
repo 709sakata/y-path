@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { FileText, Search, Download, Upload, Filter, Calendar, Users, ChevronRight, MessageSquare } from 'lucide-react';
+import { FileText, Search, Download, Upload, Filter, Calendar, Users, ChevronRight, MessageSquare, Building2, Sparkles, Link as LinkIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { api as appApi } from '../services/api';
 import { SurveyImportModal } from './SurveyImportModal';
@@ -13,21 +13,74 @@ export function SurveysManager() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedSurvey, setSelectedSurvey] = useState<any | null>(null);
 
-  const fetchSurveys = async () => {
+  // Data for linking
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [programs, setPrograms] = useState<any[]>([]);
+  const [isLinking, setIsLinking] = useState(false);
+  
+  // Link state
+  const [linkParentId, setLinkParentId] = useState('');
+  const [linkOrgId, setLinkOrgId] = useState('');
+  const [linkProgramId, setLinkProgramId] = useState('');
+
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const data = await appApi.surveys.getAll();
-      setSurveys(data);
+      const [surveysData, customersData, orgsData, progsData] = await Promise.all([
+        appApi.surveys.getAll(),
+        appApi.customers.list(),
+        appApi.organizations.list(),
+        appApi.programs.list()
+      ]);
+      setSurveys(surveysData);
+      setCustomers(customersData);
+      setOrganizations(orgsData);
+      setPrograms(progsData);
     } catch (error) {
-      console.error('Failed to fetch surveys:', error);
+      console.error('Failed to fetch data:', error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchSurveys();
+    fetchData();
   }, []);
+
+  useEffect(() => {
+    if (selectedSurvey) {
+      setLinkParentId(selectedSurvey.parent_id || '');
+      setLinkOrgId(selectedSurvey.organization_id || '');
+      setLinkProgramId(selectedSurvey.program_id || '');
+    }
+  }, [selectedSurvey]);
+
+  const handleLink = async () => {
+    if (!selectedSurvey) return;
+    setIsLinking(true);
+    try {
+      await appApi.surveys.link(selectedSurvey.id, {
+        parent_id: linkParentId || null,
+        organization_id: linkOrgId || null,
+        program_id: linkProgramId || null
+      });
+      
+      // Refresh data
+      await fetchData();
+      
+      // Update selected survey to reflect changes
+      const updatedSurvey = await appApi.surveys.getAll().then(data => data.find((s: any) => s.id === selectedSurvey.id));
+      setSelectedSurvey(updatedSurvey);
+      
+      alert('紐付けを更新しました');
+    } catch (error) {
+      console.error('Failed to link survey:', error);
+      alert('紐付けの更新に失敗しました');
+    } finally {
+      setIsLinking(false);
+    }
+  };
 
   const filteredSurveys = surveys.filter(survey => {
     const searchLower = searchQuery.toLowerCase();
@@ -114,10 +167,84 @@ export function SurveysManager() {
                     <Users size={14} /> 未紐付け
                   </span>
                 )}
+                {selectedSurvey.organizations && (
+                  <span className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full font-medium">
+                    <Building2 size={14} /> {selectedSurvey.organizations.name}
+                  </span>
+                )}
+                {selectedSurvey.programs && (
+                  <span className="flex items-center gap-1 text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full font-medium">
+                    <Sparkles size={14} /> {selectedSurvey.programs.title}
+                  </span>
+                )}
               </div>
             </div>
           </div>
-          <div className="p-6 space-y-6">
+          
+          <div className="p-6 border-b border-slate-100 bg-white">
+            <h5 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+              <LinkIcon size={16} className="text-indigo-600" />
+              データの紐付け
+            </h5>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">顧客</label>
+                <select
+                  value={linkParentId}
+                  onChange={(e) => setLinkParentId(e.target.value)}
+                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg outline-none text-sm"
+                >
+                  <option value="">未紐付け</option>
+                  {customers.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">団体</label>
+                <select
+                  value={linkOrgId}
+                  onChange={(e) => setLinkOrgId(e.target.value)}
+                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg outline-none text-sm"
+                >
+                  <option value="">未紐付け</option>
+                  {organizations.map(o => (
+                    <option key={o.id} value={o.id}>{o.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">プログラム</label>
+                <select
+                  value={linkProgramId}
+                  onChange={(e) => setLinkProgramId(e.target.value)}
+                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg outline-none text-sm"
+                >
+                  <option value="">未紐付け</option>
+                  {programs
+                    .filter(p => !linkOrgId || p.organization_id === linkOrgId)
+                    .map(p => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={handleLink}
+                disabled={isLinking || (
+                  linkParentId === (selectedSurvey.parent_id || '') &&
+                  linkOrgId === (selectedSurvey.organization_id || '') &&
+                  linkProgramId === (selectedSurvey.program_id || '')
+                )}
+                className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+              >
+                {isLinking ? '保存中...' : '紐付けを保存'}
+              </button>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-6 bg-slate-50">
             {Object.entries(selectedSurvey.answers).map(([question, answer]: [string, any], index) => {
               if (question.toLowerCase().includes('timestamp') || question.includes('タイムスタンプ')) return null;
               return (
@@ -199,6 +326,16 @@ export function SurveysManager() {
                             <Users size={12} /> 未紐付け
                           </span>
                         )}
+                        {survey.organizations && (
+                          <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg flex items-center gap-1">
+                            <Building2 size={12} /> {survey.organizations.name}
+                          </span>
+                        )}
+                        {survey.programs && (
+                          <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-lg flex items-center gap-1">
+                            <Sparkles size={12} /> {survey.programs.title}
+                          </span>
+                        )}
                       </div>
                       <h4 className="font-bold text-slate-800 text-sm truncate">{survey.title}</h4>
                       <p className="text-xs text-slate-500 mt-2 line-clamp-2">
@@ -229,7 +366,7 @@ export function SurveysManager() {
         onClose={() => setIsImportModalOpen(false)}
         onSuccess={() => {
           setIsImportModalOpen(false);
-          fetchSurveys();
+          fetchData();
         }}
       />
     </div>

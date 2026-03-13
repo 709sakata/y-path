@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Import surveys from CSV
 router.post("/import", isAdmin, async (req, res) => {
-  const { title, surveys, matchColumn, matchType } = req.body;
+  const { title, surveys, matchColumn, matchType, organization_id, program_id } = req.body;
   
   if (!title || !surveys || !Array.isArray(surveys) || !matchColumn || !matchType) {
     return res.status(400).json({ error: "Invalid request data" });
@@ -36,12 +36,14 @@ router.post("/import", isAdmin, async (req, res) => {
 
     const surveyRecords = surveys.map(survey => {
       let parentId = null;
+      let email = null;
       const matchValue = survey[matchColumn];
 
       if (matchValue) {
         let key = matchValue;
         if (matchType === 'email') {
           key = key.toLowerCase();
+          email = key; // Save email for future auto-linking
         } else if (matchType === 'phone') {
           key = key.replace(/\D/g, '');
         }
@@ -56,6 +58,14 @@ router.post("/import", isAdmin, async (req, res) => {
         unlinkedCount++;
       }
 
+      // Try to find an email column even if matchType is not email
+      if (!email) {
+        const emailCol = Object.keys(survey).find(c => c.toLowerCase().includes('email') || c.includes('メール'));
+        if (emailCol && survey[emailCol]) {
+          email = String(survey[emailCol]).toLowerCase();
+        }
+      }
+
       // Extract submitted_at if available (commonly "タイムスタンプ" or "Timestamp" in Google Forms)
       let submittedAt = new Date().toISOString();
       const timestampKey = Object.keys(survey).find(k => k.toLowerCase().includes('timestamp') || k.includes('タイムスタンプ'));
@@ -68,6 +78,9 @@ router.post("/import", isAdmin, async (req, res) => {
 
       return {
         parent_id: parentId,
+        organization_id: organization_id || null,
+        program_id: program_id || null,
+        email: email,
         title,
         submitted_at: submittedAt,
         answers: survey
@@ -121,9 +134,40 @@ router.get("/", isAdmin, async (req, res) => {
         parents (
           name,
           email
+        ),
+        organizations (
+          name
+        ),
+        programs (
+          title
         )
       `)
       .order('submitted_at', { ascending: false });
+
+    if (error) throw error;
+    res.json(data);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Link a survey to a parent, organization, or program
+router.put("/:id/link", isAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { parent_id, organization_id, program_id } = req.body;
+
+  try {
+    const updateData: any = {};
+    if (parent_id !== undefined) updateData.parent_id = parent_id;
+    if (organization_id !== undefined) updateData.organization_id = organization_id;
+    if (program_id !== undefined) updateData.program_id = program_id;
+
+    const { data, error } = await supabase
+      .from('customer_surveys')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
 
     if (error) throw error;
     res.json(data);
