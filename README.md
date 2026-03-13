@@ -1,20 +1,71 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Multi-Organization Community Hub System
+## 〜 共有地・地域活動団体のための横断的予約・顧客管理基盤 〜
 
-# Run and deploy your AI Studio app
+本システムは、**「太子遊び冒険の森ASOBO」**をはじめとする、地域資産の共同所有・利用を行うあらゆる団体の運営を一括で下支えするプラットフォームです。
 
-This contains everything you need to run your app locally.
+最大の特徴は、複数の団体が独立して運用を行いながらも、**利用者（メンバー）のデータを横断的に管理・分析できる**点にあります。これにより、地域全体の活動人口の可視化や、団体間の相互送客、利用者の属性に応じた最適な活動提案を可能にします。
 
-View your app in AI Studio: https://ai.studio/apps/858b5f0d-46de-4a14-a94f-26201a9aadc9
+---
 
-## Run Locally
+## システムの核心：マルチテナント型・横断管理
 
-**Prerequisites:**  Node.js
+1. **団体（Organization）の多層管理**
+   * 各団体が独自のプログラムや予約枠を管理できる独立性を保ちつつ、システム全体で共通の顧客基盤（Identity）を維持。
+2. **クロス・オーガニゼーション分析**
+   * A団体で活動する利用者が、B団体のワークショップにどう関わっているか等、団体を跨いだエンゲージメントを可視化。
+3. **コモンズの共通インフラ**
+   * 予約・アンケート・顧客管理という「共通の運用コスト」をシステム化することで、小規模な任意団体でも高度なデータ運用を可能にします。
 
+## 主な機能 (Core Functions)
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+* **マルチテナント予約エンジン:** 団体ごとにカスタマイズ可能なプログラム、定員、スケジュール管理。
+* **統合顧客データベース:** 保護者・子どものリレーションを維持しつつ、複数の団体での活動履歴を統合管理。
+* **横断統計ダッシュボード:** Rechartsを用いた、団体別の予約推移や利用者属性のクロス分析。
+* **CSVデータ・オーケストレーション:** 既存の各団体名簿を一括取り込み、名寄せ・統合をサポート。
+
+---
+
+## 技術スタックとアーキテクチャ (Reliability & Scalability)
+
+本システムは、スケーラビリティと堅牢なセキュリティを両立するモダンなフルスタック構成を採用しています。
+
+### バックエンド (Node.js / Express)
+* **BFF (Backend For Frontend) アーキテクチャ:** フロントエンドからのリクエストをExpressサーバーで受け、Supabaseへのアクセスを仲介。APIキーの隠蔽や複雑なビジネスロジックのサーバーサイド処理を実現。
+* **セッション管理:** `express-session` を用いたセキュアな状態管理により、ユーザーのロール（`admin`, `customer`）や所属団体情報を安全に保持。
+
+### セキュアなデータ基盤 (Supabase / PostgreSQL)
+* **権限分離の徹底（Client Separation Pattern）:**
+  バックエンドでのSupabaseクライアント利用において、状態汚染を防ぐための厳密な設計パターンを採用しています。
+  * **管理・分析用 (`service_role`):** DBの読み書きや横断的なデータ集計には、セッションを保持しないシングルトンの管理者クライアントを使用し、RLSを安全にバイパス。
+  * **エンドユーザー操作用 (`anon`):** `signInWithPassword` や `signUp` などの認証操作には、リクエストごとにファクトリ関数（`createAuthClient`）から生成される使い捨てクライアントを使用し、グローバルな権限汚染を完全に防止。
+* **マルチテナント・セキュリティ:** PostgreSQLの強力な機能とSupabase Authを連携させ、複数団体の機密情報を安全に分離・統合。
+
+### モダン・フロントエンド (React 18 / Vite)
+* **UI/UX:** Tailwind CSS による、団体ごとのカラーや特性に合わせやすい柔軟で軽量なインターフェース設計。Lucide React による一貫したアイコンシステム。
+* **データ可視化:** Recharts を活用したインタラクティブな統計ダッシュボード。
+* **ビルドツール:** Vite による高速な開発体験と最適化された本番ビルド。
+
+---
+
+## 将来的なAI活用展望 (AI Strategy)
+
+* **団体間レコメンデーション:** 利用者の過去の活動傾向から、別の団体が主催する相性の良いプログラムをAIが推薦。
+* **地域活動の需要予測:** 複数団体のデータを統合解析し、地域全体で「いつ・どのような活動」が求められているかを予測。
+* **自動セグメンテーション:** アンケートや活動頻度に基づき、特に貢献度の高い「コアメンバー」をAIが自動抽出・分析。
+
+---
+
+## セットアップ (Setup)
+
+1. プロジェクトルートの `.env` に共有基盤となる Supabase キーを設定します。
+   ```env
+   SUPABASE_URL=your_supabase_url
+   SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+   SESSION_SECRET=your_random_session_secret
+   ```
+2. `npm install` で環境構築（依存関係のインストール）を行います。
+3. `npm run dev` でポータル（開発用サーバー）を起動します。
+
+---
+**Empowering Regional Commons through Data Integration.**
